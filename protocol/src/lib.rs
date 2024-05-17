@@ -1,3 +1,4 @@
+#![allow(unused)]
 // Sample generated code from SpecMC
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
