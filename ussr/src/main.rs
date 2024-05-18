@@ -1,16 +1,18 @@
 use std::io::Write;
 
+use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
 use chrono::Local;
 use env_logger::Builder;
-use eyre::Result;
+use eyre::Result; //? I probably shouldn't use this.
 use log::LevelFilter;
 
 // Very important
 static HEROBRINE: &str = "herobrine";
 
-fn main() -> Result<()> {
-    color_eyre::install()?;
+// fn main() -> Result<()> {
+fn main() {
+    // color_eyre::install()?;
 
     Builder::new()
         .format(|buf, record| {
@@ -31,6 +33,6 @@ fn main() -> Result<()> {
 
     // server::start()
     let mut world: World = World::new();
-    
-    Ok(())
+
+    // Ok(())
 }
