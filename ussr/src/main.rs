@@ -1,11 +1,13 @@
 use std::io::Write;
 
-use bevy_app::prelude::*;
-use bevy_ecs::prelude::*;
+use bevy_app::{App, ScheduleRunnerPlugin};
+// use bevy_app::prelude::*;
+// use bevy_ecs::prelude::*;
 use chrono::Local;
 use env_logger::Builder;
-use eyre::Result; //? I probably shouldn't use this.
+// use eyre::Result; //? I probably shouldn't use this.
 use log::LevelFilter;
+use ussr_net::UssrNetPlugin;
 
 // Very important
 static HEROBRINE: &str = "herobrine";
@@ -31,8 +33,8 @@ fn main() {
         println!("{HEROBRINE}");
     }
 
-    // server::start()
-    let mut world: World = World::new();
-
-    // Ok(())
+    App::new()
+        .add_plugins((ScheduleRunnerPlugin::default()))
+        .add_plugins(UssrNetPlugin)
+        .run();
 }
