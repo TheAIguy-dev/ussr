@@ -1,40 +1,14 @@
-use std::io::Write;
+mod init_tracing;
 
 use bevy_app::{App, ScheduleRunnerPlugin};
-// use bevy_app::prelude::*;
-// use bevy_ecs::prelude::*;
-use chrono::Local;
-use env_logger::Builder;
-// use eyre::Result; //? I probably shouldn't use this.
-use log::LevelFilter;
+use init_tracing::init_tracing;
 use ussr_net::UssrNetPlugin;
 
-// Very important
-static HEROBRINE: &str = "herobrine";
-
-// fn main() -> Result<()> {
 fn main() {
-    // color_eyre::install()?;
-
-    Builder::new()
-        .format(|buf, record| {
-            writeln!(
-                buf,
-                "[{} {}] {}",
-                Local::now().format("%Y-%m-%d %H:%M:%S"),
-                record.level(),
-                record.args()
-            )
-        })
-        .filter(None, LevelFilter::Debug)
-        .init();
-
-    if false {
-        println!("{HEROBRINE}");
-    }
+    init_tracing();
 
     App::new()
-        .add_plugins((ScheduleRunnerPlugin::default()))
+        .add_plugins(ScheduleRunnerPlugin::default())
         .add_plugins(UssrNetPlugin)
         .run();
 }

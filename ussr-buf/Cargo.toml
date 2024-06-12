@@ -4,3 +4,13 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+paste = "1.0.15"
+thiserror = "1.0.61"
+
+[dev-dependencies]
+criterion = "0.5.1"
+bytes = "1.6.0"
+
+[[bench]]
+name = "var"
+harness = false

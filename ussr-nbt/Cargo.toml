@@ -1,0 +1,7 @@
+[package]
+name = "ussr-nbt"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+ussr-buf = { version = "0.1.0", path = "../ussr-buf" }

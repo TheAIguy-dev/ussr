@@ -1,62 +1,41 @@
-#![allow(unused)]
-// Sample generated code from SpecMC
+mod generated;
 
-use std::{
-    fmt::Write,
-    io::{self, Read},
-};
+use std::io::{self, Read, Write};
 
 use thiserror::Error;
+use ussr_buf::ReadError;
 
-#[derive(Debug, Error)]
-pub enum WritePacketError {
-    #[error(transparent)]
-    IoError(#[from] io::Error),
-    #[error("Connection closed")]
-    ConnectionClosed,
+use generated::enums::State;
+
+pub enum Direction {
+    Serverbound,
+    Clientbound,
 }
 
+//? Maybe I don't need to implement Error.
 #[derive(Debug, Error)]
-pub enum ReadPacketError {
-    #[error(transparent)]
-    IoError(io::Error),
-    #[error("Unknown packet id: {0}")]
-    UnknownPacketId(u32),
-    #[error("Parse error: {0}")]
-    ParseError(&'static str),
-    #[error("Connection closed")]
-    ConnectionClosed,
+pub enum PacketReadError {
+    #[error("{0}")]
+    Io(#[from] io::Error),
+
+    #[error("Unknown packet id {packet_id} in state {state}")]
+    UnknownPacketId { packet_id: u32, state: State },
+
+    #[error("Couldn't parse packet: {0}")]
+    Parse(#[from] ReadError),
 }
 
 pub trait Packet: Sized {
-    /// Get the packet id.
-    fn id() -> u32;
+    /// The packet id.
+    const ID: u32;
 
-    /// Read the packet from the given reader.
-    fn read(_: &mut impl Read) -> Result<Self, WritePacketError>;
+    /// The packet direction.
+    const DIRECTION: Direction;
 
-    /// Write the packet to the given writer.
-    fn write(&self, _: &mut impl Write) -> Result<(), WritePacketError>;
-}
+    /// The state in which this packet is received/sent.
+    const STATE: State;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum NextState {
-    Status = 1,
-    Login = 2,
-}
+    fn read(buf: &mut impl Read) -> Result<Self, PacketReadError>;
 
-pub mod packets {
-    pub mod handshake {
-        pub mod serverbound {
-            use super::super::super::*;
-
-            pub struct Handshake {
-                protocol_version: i32,
-                server_address: String,
-                server_port: u16,
-                next_state: NextState,
-            }
-        }
-        pub mod clientbound {}
-    }
+    fn write(&self, buf: &mut impl Write) -> io::Result<()>;
 }

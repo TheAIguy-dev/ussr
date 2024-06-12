@@ -1,5 +1,5 @@
 [workspace]
-members = ["ussr", "ussr-buf", "ussr-net", "ussr-protocol"]
+members = ["ussr", "ussr-buf", "ussr-nbt", "ussr-net", "ussr-protocol"]
 resolver = "2"
 
 [profile.release]

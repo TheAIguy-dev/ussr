@@ -4,5 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy_app = "0.13.2"
-bevy_ecs = "0.13.2"
+bevy_app = { version = "0.13.2", default-features = false }
+bevy_ecs = { version = "0.13.2", default-features = false }
+bytes = "1.6.0"
+tracing = "0.1.40"
+ussr-buf = { version = "0.1.0", path = "../ussr-buf" }
+ussr-protocol = { version = "0.1.0", path = "../ussr-protocol" }

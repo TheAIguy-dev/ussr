@@ -1,10 +1,13 @@
 use std::{
-    io::{self, Read},
+    io::{self, Cursor, Read},
     net::{TcpListener, TcpStream},
 };
 
 use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
+use bytes::{Buf, BytesMut};
+use tracing::{instrument, trace};
+use ussr_buf::VarReadable;
 
 pub struct UssrNetPlugin;
 impl Plugin for UssrNetPlugin {
@@ -36,7 +39,7 @@ impl Server {
 #[derive(Component)]
 pub struct Connection {
     stream: TcpStream,
-    buf: Vec<u8>,
+    buf: BytesMut,
 }
 impl Connection {
     /// Create a new connection.
@@ -45,29 +48,32 @@ impl Connection {
         stream.set_nonblocking(true)?;
         Ok(Self {
             stream,
-            buf: vec![],
+            buf: BytesMut::new(),
         })
     }
 }
 
 /// A system that accepts connections and spawns new entities with [`Connection`].
 /// The listener must be non-blocking, see [`TcpListener::set_nonblocking`].
+#[instrument(skip_all, level = "trace")]
 fn accept_connections(mut commands: Commands, server: Res<Server>) {
     loop {
-        match server.listener.accept() {
-            Ok((stream, _)) => commands.spawn(match Connection::new(stream) {
-                Ok(connection) => {println!("Accepted connection");connection},
-                Err(_) => return,
-            }),
-            Err(_) /* if err.kind() == io::ErrorKind::WouldBlock */ => return,
-            // Err(err) => return Err(err),
-        };
+        if let Ok((stream, _)) = server.listener.accept() {
+            trace!("Accepted connection");
+            if let Ok(connection) = Connection::new(stream) {
+                commands.spawn(connection);
+            } else {
+                return;
+            }
+        } else {
+            return;
+        }
     }
 }
 
 /// A system that reads data from a [`Connection`].
-///
 /// The connection must be non-blocking, see [`TcpStream::set_nonblocking`].
+#[instrument(skip_all, level = "trace")]
 fn read_data(mut commands: Commands, mut query: Query<(Entity, &mut Connection)>) {
     let mut buf: Vec<u8> = vec![0; READ_BUFFER_SIZE];
 
@@ -75,21 +81,42 @@ fn read_data(mut commands: Commands, mut query: Query<(Entity, &mut Connection)>
         match connection.stream.read(&mut buf) {
             // Connection closed
             Ok(0) => {
-                println!("Connection closed");
+                trace!("Connection closed");
                 commands.entity(entity).remove::<Connection>();
             }
             // Successful read
-            Ok(n) => {println!("Read {} bytes", n);connection.buf.extend_from_slice(&buf[..n])},
+            Ok(n) => {
+                trace!("Read {n} bytes");
+                connection.buf.extend_from_slice(&buf[..n])
+            }
             // Wood block
-            Err(_) /* if err.kind() == io::ErrorKind::WouldBlock */ => continue,
+            Err(e) if e.kind() == io::ErrorKind::WouldBlock => continue,
             // Other error
-            // Err(err) => return Err(err),
-        };
+            Err(e) => {
+                trace!("Error: {e:?}");
+                continue;
+            }
+        }
     }
 }
 
-fn test(query: Query<&Connection>) {
-    for connection in &query {
-        println!("{:?}", connection.buf);
+#[instrument(skip_all, level = "trace")]
+fn test(mut query: Query<&mut Connection>) {
+    for mut connection in &mut query {
+        if !connection.buf.is_empty() {
+            let mut buf = Cursor::new(&connection.buf);
+            trace!("Buffer: {:?}", connection.buf);
+            if let Ok(packet_length) = usize::read_var_from(&mut buf) {
+                trace!("Packet length: {packet_length}");
+                if packet_length <= buf.remaining() {
+                    let packet_length_length: usize = connection.buf.len() - buf.remaining();
+                    trace!(
+                        "Packet data: {:?}",
+                        &buf.get_ref()[buf.position() as usize..packet_length]
+                    );
+                    connection.buf.advance(packet_length_length + packet_length);
+                }
+            }
+        }
     }
 }

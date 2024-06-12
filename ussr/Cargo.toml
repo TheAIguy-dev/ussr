@@ -4,8 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy_app = "0.13.2"
+bevy_app = { version = "0.13.2", default-features = false }
+bytes = "1.6.0"
 chrono = "0.4.38"
-env_logger = "0.11.3"
-log = "0.4.21"
+nu-ansi-term = "0.50.0"
+tracing = "0.1.40"
+tracing-core = "0.1.32"
+tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+ussr-buf = { version = "0.1.0", path = "../ussr-buf" }
 ussr-net = { version = "0.1.0", path = "../ussr-net" }
