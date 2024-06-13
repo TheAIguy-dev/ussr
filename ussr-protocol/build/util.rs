@@ -27,7 +27,7 @@ impl ToString for BaseType {
             F32 => "f32".to_string(),
             F64 => "f64".to_string(),
             String { .. } => "String".to_string(),
-            List { ty, .. } => ty.to_string(),
+            List { ty, .. } => format!("Vec<{}>", ty.to_string()),
             Nbt => "Nbt".to_string(),
         }
     }
@@ -60,4 +60,45 @@ impl ToString for Direction {
         }
         .to_string()
     }
+}
+
+pub fn read_integer_type(ty: &IntegerType) -> String {
+    use IntegerType::*;
+    match ty {
+        VarInt | VarLong => "read_var_from",
+        _ => "read_from",
+    }
+    .to_string()
+}
+
+pub fn write_integer_type(ty: &IntegerType) -> String {
+    use IntegerType::*;
+    match ty {
+        VarInt | VarLong => "write_var_to",
+        _ => "write_to",
+    }
+    .to_string()
+}
+
+pub fn read_base_type(ty: &BaseType) -> String {
+    use BaseType::*;
+    match ty {
+        Integer(ty) => read_integer_type(ty),
+        _ => "read_from".to_string(),
+    }
+}
+
+pub fn read_type(ty: &Type) -> String {
+    use Type::*;
+    match ty {
+        BaseType(ty) => read_base_type(ty),
+        _ => "read_from".to_string(),
+    }
+}
+
+pub fn is_copy(ty: &Type) -> bool {
+    matches!(ty, Type::BaseType(ty) if !matches!(
+        ty,
+        BaseType::String { .. } | BaseType::List { .. } | BaseType::Nbt
+    ))
 }

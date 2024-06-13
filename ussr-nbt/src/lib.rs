@@ -2,6 +2,7 @@ use std::io::{self, Read, Write};
 
 use ussr_buf::{ReadError, Readable, Writable};
 
+#[derive(Debug)]
 pub struct Nbt;
 
 impl Readable for Nbt {

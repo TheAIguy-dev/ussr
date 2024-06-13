@@ -14,5 +14,5 @@ ussr-buf = { version = "0.1.0", path = "../ussr-buf" }
 ussr-nbt = { version = "0.1.0", path = "../ussr-nbt" }
 
 [build-dependencies]
-specmc-protocol = { version = "0.1.8", features = ["1_7_2"] }
+specmc-protocol = { version = "0.1.9", features = ["1_7_2"] }
 specmc-base = "0.1.11"

@@ -38,22 +38,22 @@ pub enum ReadError {
     // ConnectionClosed,
 }
 
-/// A trait for reading types from a buffer.
+/// A trait for reading types from a reader.
 pub trait Readable: Sized {
-    fn read_from(buf: &mut impl Read) -> Result<Self, ReadError>;
+    fn read_from(reader: &mut impl Read) -> Result<Self, ReadError>;
 }
 
-/// A trait for reading variable-length types from a buffer.
+/// A trait for reading variable-length types from a reader.
 pub trait VarReadable: Sized {
     fn read_var_from(buf: &mut impl Read) -> Result<Self, ReadError>;
 }
 
-/// A trait for writing types to a buffer.
+/// A trait for writing types to a writer.
 pub trait Writable: Sized {
-    fn write_to(&self, buf: &mut impl Write) -> io::Result<()>;
+    fn write_to(&self, writer: &mut impl Write) -> io::Result<()>;
 }
 
-/// A trait for writing variable-length types to a buffer.
+/// A trait for writing variable-length types to a writer.
 pub trait VarWritable: Sized {
-    fn write_var_to(&self, buf: &mut impl Write) -> io::Result<()>;
+    fn write_var_to(&self, writer: &mut impl Write) -> io::Result<()>;
 }

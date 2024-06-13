@@ -35,7 +35,10 @@ pub trait Packet: Sized {
     /// The state in which this packet is received/sent.
     const STATE: State;
 
-    fn read(buf: &mut impl Read) -> Result<Self, PacketReadError>;
+    /// Reads the packet from the given reader.
+    fn read(reader: &mut impl Read) -> Result<Self, PacketReadError>;
 
-    fn write(&self, buf: &mut impl Write) -> io::Result<()>;
+    /// Writes the packet to the given writer.
+    /// Note that this still performs validation, and will panic if the packet is invalid.
+    fn write(&self, writer: &mut impl Write) -> io::Result<()>;
 }

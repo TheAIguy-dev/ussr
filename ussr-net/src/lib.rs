@@ -28,8 +28,8 @@ struct Server {
 }
 impl Server {
     fn new() -> Self {
-        let listener: TcpListener = TcpListener::bind("127.0.0.1:25565").unwrap();
-        listener.set_nonblocking(true).unwrap();
+        let listener: TcpListener = TcpListener::bind("127.0.0.1:25565").expect("Failed to bind server on port 25565");
+        listener.set_nonblocking(true).expect("Failed to set server to non-blocking");
         Self { listener }
     }
 }
