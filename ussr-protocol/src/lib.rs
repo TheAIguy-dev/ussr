@@ -1,13 +1,14 @@
-mod generated;
+mod versions;
 
 use std::io::{self, Read, Write};
 
 use thiserror::Error;
 use ussr_buf::ReadError;
 
-use generated::enums::State;
+use versions::enums::State;
 
-pub enum Direction {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PacketDirection {
     Serverbound,
     Clientbound,
 }
@@ -30,10 +31,16 @@ pub trait Packet: Sized {
     const ID: u32;
 
     /// The packet direction.
-    const DIRECTION: Direction;
+    const DIRECTION: PacketDirection;
 
     /// The state in which this packet is received/sent.
     const STATE: State;
+
+    /// The minimum size of the packet in bytes when serialized.
+    const MIN_SIZE: usize;
+
+    /// The maximum size of the packet in bytes when serialized.
+    const MAX_SIZE: usize;
 
     /// Reads the packet from the given reader.
     fn read(reader: &mut impl Read) -> Result<Self, PacketReadError>;

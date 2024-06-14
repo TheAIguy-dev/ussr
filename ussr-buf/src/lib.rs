@@ -1,5 +1,6 @@
 mod io_ext;
 mod read;
+mod size;
 mod write;
 
 use std::{
@@ -36,6 +37,17 @@ pub enum ReadError {
 
     // #[error("Connection closed")]
     // ConnectionClosed,
+}
+
+/// A trait for getting the size of a type in bytes when serialized.
+pub trait Size {
+    const SIZE: usize;
+}
+
+/// A trait for getting the size of a variable-length type in bytes when serialized.
+pub trait VarSize {
+    const MIN_SIZE: usize;
+    const MAX_SIZE: usize;
 }
 
 /// A trait for reading types from a reader.

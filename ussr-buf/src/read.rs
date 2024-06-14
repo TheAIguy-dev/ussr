@@ -2,7 +2,7 @@ use std::io::Read;
 
 use paste::paste;
 
-use crate::{ReadError, ReadExt, Readable, VarReadable};
+use crate::{size::MAX_STRING_LENGTH, ReadError, ReadExt, Readable, VarReadable};
 
 macro_rules! impl_readable {
     ($($type:ty),*) => {
@@ -20,8 +20,11 @@ macro_rules! impl_readable {
 }
 impl_readable!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64);
 
+/// Reads a string from the reader, with a maximum length `max_length`.
+///
+/// `max_length` is in characters, not bytes.
 pub fn read_string(reader: &mut impl Read, max_length: usize) -> Result<String, ReadError> {
-    let length: u32 = u32::read_var_from(reader)?;
+    let length: usize = usize::read_var_from(reader)?;
 
     if length as usize > max_length * 3 {
         return Err(ReadError::InvalidStringLength {
@@ -32,6 +35,7 @@ pub fn read_string(reader: &mut impl Read, max_length: usize) -> Result<String, 
 
     let mut bytes: Vec<u8> = vec![0; length as usize];
     reader.read_exact(&mut bytes)?;
+    // TODO: make a fast utf-8 validator
     Ok(String::from_utf8(bytes)?)
 }
 
@@ -102,6 +106,6 @@ impl VarReadable for usize {
 impl Readable for String {
     #[inline]
     fn read_from(reader: &mut impl Read) -> Result<Self, ReadError> {
-        read_string(reader, 32767)
+        read_string(reader, MAX_STRING_LENGTH)
     }
 }

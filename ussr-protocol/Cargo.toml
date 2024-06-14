@@ -2,17 +2,23 @@
 name = "ussr-protocol"
 version = "0.1.0"
 edition = "2021"
-build = "build/mod.rs"
 
 [dependencies]
 bytes = "1.6.0"
+cfg-if = "1.0.0"
 paste = "1.0.15"
-strum = "0.26"
-strum_macros = "0.26"
+strum = "0.26.2"
+strum_macros = "0.26.4"
 thiserror = "1.0.61"
+tracing = "0.1.40"
 ussr-buf = { version = "0.1.0", path = "../ussr-buf" }
 ussr-nbt = { version = "0.1.0", path = "../ussr-nbt" }
+ussr-protocol-macros = { version = "0.1.0", path = "ussr-protocol-macros" }
 
 [build-dependencies]
-specmc-protocol = { version = "0.1.9", features = ["1_7_2"] }
+specmc-protocol = { version = "0.1.10", features = ["v1_7_2"] }
 specmc-base = "0.1.11"
+
+[features]
+default = ["v1_7_2"]
+v1_7_2 = []
