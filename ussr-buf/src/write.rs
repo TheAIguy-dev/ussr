@@ -20,6 +20,32 @@ macro_rules! impl_writable {
 }
 impl_writable!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64);
 
+/// Write an array to the writer, prefixed with its length as a fixed-sized type `L`.
+pub fn write_array<L, T>(writer: &mut impl Write, array: &[T]) -> io::Result<()>
+where
+    L: Writable + From<usize>,
+    T: Writable,
+{
+    L::from(array.len()).write_to(writer)?;
+    for item in array.iter() {
+        item.write_to(writer)?;
+    }
+    Ok(())
+}
+
+/// Write an array to the writer, prefixed with its length as a variable-sized type `L`.
+pub fn write_var_array<L, T>(writer: &mut impl Write, array: &[T]) -> io::Result<()>
+where
+    L: VarWritable + From<usize>,
+    T: VarWritable,
+{
+    L::from(array.len()).write_var_to(writer)?;
+    for item in array.iter() {
+        item.write_var_to(writer)?;
+    }
+    Ok(())
+}
+
 impl Writable for bool {
     #[inline]
     fn write_to(&self, writer: &mut impl Write) -> io::Result<()> {

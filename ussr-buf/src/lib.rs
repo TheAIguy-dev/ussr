@@ -1,7 +1,7 @@
 mod io_ext;
-mod read;
-mod size;
-mod write;
+pub mod read;
+pub mod size;
+pub mod write;
 
 use std::{
     io::{self, Read, Write},

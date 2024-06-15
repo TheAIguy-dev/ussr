@@ -39,6 +39,34 @@ pub fn read_string(reader: &mut impl Read, max_length: usize) -> Result<String, 
     Ok(String::from_utf8(bytes)?)
 }
 
+/// Read an array from the reader, prefixed with its length as a fixed-size readable type `L`.
+pub fn read_array<L, T>(reader: &mut impl Read) -> Result<Vec<T>, ReadError>
+where
+    L: Readable + Into<usize>,
+    T: Readable,
+{
+    let length: usize = L::read_from(reader)?.into();
+    let mut array: Vec<T> = Vec::with_capacity(length);
+    for _ in 0..length {
+        array.push(T::read_from(reader)?);
+    }
+    Ok(array)
+}
+
+/// Read an array from the reader, prefixed with its length as a variable-sized readable type `L`.
+pub fn read_var_array<L, T>(reader: &mut impl Read) -> Result<Vec<T>, ReadError>
+where
+    L: VarReadable + Into<usize>,
+    T: VarReadable,
+{
+    let length: usize = L::read_var_from(reader)?.into();
+    let mut array: Vec<T> = Vec::with_capacity(length);
+    for _ in 0..length {
+        array.push(T::read_var_from(reader)?);
+    }
+    Ok(array)
+}
+
 impl Readable for bool {
     #[inline]
     fn read_from(reader: &mut impl Read) -> Result<Self, ReadError> {
