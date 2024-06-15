@@ -24,7 +24,7 @@ pub mod serverbound {
         const ID = 0x01,
         const DIRECTION = Serverbound,
         const STATE = Login,
-        const MIN_SIZE = 0,
-        const MAX_SIZE = 0,
+        const MIN_SIZE = (u16::SIZE + u16::MIN as usize * u8::SIZE) * 2,
+        const MAX_SIZE = (u16::SIZE + u16::MAX as usize * u8::SIZE) * 2,
     }
 }
