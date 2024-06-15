@@ -1,3 +1,4 @@
+use core::fmt;
 use std::io::{self, Write};
 
 use paste::paste;
@@ -23,10 +24,13 @@ impl_writable!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64);
 /// Write an array to the writer, prefixed with its length as a fixed-sized type `L`.
 pub fn write_array<L, T>(writer: &mut impl Write, array: &[T]) -> io::Result<()>
 where
-    L: Writable + From<usize>,
+    L: Writable + TryFrom<usize>,
+    <L as TryFrom<usize>>::Error: fmt::Debug,
     T: Writable,
 {
-    L::from(array.len()).write_to(writer)?;
+    L::try_from(array.len())
+        .expect("Could not convert from usize")
+        .write_to(writer)?;
     for item in array.iter() {
         item.write_to(writer)?;
     }
@@ -36,10 +40,13 @@ where
 /// Write an array to the writer, prefixed with its length as a variable-sized type `L`.
 pub fn write_var_array<L, T>(writer: &mut impl Write, array: &[T]) -> io::Result<()>
 where
-    L: VarWritable + From<usize>,
+    L: VarWritable + TryFrom<usize>,
+    <L as TryFrom<usize>>::Error: fmt::Debug,
     T: VarWritable,
 {
-    L::from(array.len()).write_var_to(writer)?;
+    L::try_from(array.len())
+        .expect("Could not convert to {} from usize")
+        .write_var_to(writer)?;
     for item in array.iter() {
         item.write_var_to(writer)?;
     }

@@ -18,8 +18,8 @@ pub mod serverbound {
     packet! {
         #[derive(Debug, Clone, PartialEq, Eq)]
         pub EncryptionResponse {
-            pub shared_secret: Vec<u8> = read_array::<u16, u8>, |writer, value| write_array::<u16, u8>(writer, value.as_slice()),
-            pub verify_token: Vec<u8> = read_array::<u16, u8>, |writer, value| write_array::<u16, u8>(writer, value.as_slice()),
+            pub shared_secret: Vec<u8> = read_array::<u16, u8>,  write_array::<u16, u8>,
+            pub verify_token: Vec<u8> = read_array::<u16, u8>, write_array::<u16, u8>,
         }
         const ID = 0x01,
         const DIRECTION = Serverbound,

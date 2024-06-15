@@ -72,7 +72,7 @@ macro_rules! packet {
                                 { self.$field_name.write_var_to(writer)? }
                             }
                         }
-                        { $($write)?(writer, self.$field_name)? }
+                        { $($write)?(writer, &self.$field_name)? }
                     }
                 )*
                 Ok(())
