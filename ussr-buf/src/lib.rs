@@ -16,7 +16,7 @@ pub use io_ext::*;
 #[derive(Debug, Error)]
 pub enum ReadError {
     #[error(transparent)]
-    IoError(#[from] io::Error),
+    Io(#[from] io::Error),
 
     #[error("Invalid VarInt")]
     InvalidVarInt,
@@ -32,8 +32,8 @@ pub enum ReadError {
 
     #[error("Invalid enum variant")]
     InvalidEnumVariant,
-    // #[error("Parse error: {0}")]
-    // ParseError(&'static str),
+    // #[error("{0}")]
+    // Other(&'static str),
 
     // #[error("Connection closed")]
     // ConnectionClosed,

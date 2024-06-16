@@ -15,7 +15,7 @@ use tracing_subscriber::{
 
 pub fn init_tracing() {
     let filter: EnvFilter = EnvFilter::builder()
-        .with_default_directive(Level::TRACE.into())
+        .with_default_directive(Level::INFO.into())
         .from_env()
         .expect("Failed to parse env trace filter")
         .add_directive("bevy=off".parse().unwrap());
@@ -47,12 +47,13 @@ where
         let meta: &Metadata<'_> = event.metadata();
 
         write_colored!(writer, DarkGray, "[{}] [", Local::now().format("%H:%M:%S"))?;
-        write_colored!(writer, DarkGray, "{}::", meta.target())?;
+        write_colored!(writer, DarkGray, "{}", meta.target())?;
 
         // Write spans
         if let Some(scope) = ctx.event_scope() {
             for span in scope.from_root() {
                 // Write the span name
+                write_colored!(writer, DarkGray, "::")?;
                 write_colored!(writer, White.bold(), "{}", span.name())?;
 
                 // Write the span fields

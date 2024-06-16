@@ -1,5 +1,9 @@
+#[cfg(feature = "uuid")]
+use uuid::Uuid;
+
 use crate::{Size, VarSize};
 
+/// The maximum string length in characters.
 pub const MAX_STRING_LENGTH: usize = 32767;
 
 macro_rules! impl_size {
@@ -12,6 +16,8 @@ macro_rules! impl_size {
     };
 }
 impl_size!(bool, u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64);
+#[cfg(feature = "uuid")]
+impl_size!(Uuid);
 
 impl VarSize for u32 {
     const MIN_SIZE: usize = 1;
@@ -38,6 +44,6 @@ impl VarSize for usize {
 }
 
 impl VarSize for String {
-    const MIN_SIZE: usize = usize::MIN_SIZE + 0;
+    const MIN_SIZE: usize = usize::MIN_SIZE;
     const MAX_SIZE: usize = usize::MAX_SIZE + MAX_STRING_LENGTH * 3;
 }

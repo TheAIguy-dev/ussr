@@ -6,3 +6,8 @@ edition = "2021"
 [dependencies]
 paste = "1.0.15"
 thiserror = "1.0.61"
+uuid = { version = "1.8.0", optional = true }
+
+[features]
+default = ["uuid"]
+uuid = ["dep:uuid"]

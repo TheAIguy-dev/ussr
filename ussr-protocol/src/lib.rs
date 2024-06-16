@@ -1,11 +1,11 @@
-mod versions;
+pub mod proto;
 
 use std::io::{self, Read, Write};
 
 use thiserror::Error;
 use ussr_buf::ReadError;
 
-use versions::enums::State;
+use proto::enums::State;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PacketDirection {
@@ -16,14 +16,22 @@ pub enum PacketDirection {
 //? Maybe I don't need to implement Error.
 #[derive(Debug, Error)]
 pub enum PacketReadError {
-    #[error("{0}")]
+    #[error(transparent)]
     Io(#[from] io::Error),
 
     #[error("Unknown packet id {packet_id} in state {state}")]
     UnknownPacketId { packet_id: u32, state: State },
 
     #[error("Couldn't parse packet: {0}")]
-    Parse(#[from] ReadError),
+    Parse(ReadError),
+}
+impl From<ReadError> for PacketReadError {
+    fn from(e: ReadError) -> Self {
+        match e {
+            ReadError::Io(e) => Self::Io(e),
+            e => Self::Parse(e),
+        }
+    }
 }
 
 pub trait Packet: Sized {

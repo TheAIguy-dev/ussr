@@ -1,6 +1,8 @@
 use std::io::Read;
 
 use paste::paste;
+#[cfg(feature = "uuid")]
+use uuid::Uuid;
 
 use crate::{size::MAX_STRING_LENGTH, ReadError, ReadExt, Readable, VarReadable};
 
@@ -26,14 +28,14 @@ impl_readable!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64);
 pub fn read_string(reader: &mut impl Read, max_length: usize) -> Result<String, ReadError> {
     let length: usize = usize::read_var_from(reader)?;
 
-    if length as usize > max_length * 3 {
+    if length > max_length * 3 {
         return Err(ReadError::InvalidStringLength {
             max: max_length * 3,
-            actual: length as usize,
+            actual: length,
         });
     }
 
-    let mut bytes: Vec<u8> = vec![0; length as usize];
+    let mut bytes: Vec<u8> = vec![0; length];
     reader.read_exact(&mut bytes)?;
     // TODO: make a fast utf-8 validator
     Ok(String::from_utf8(bytes)?)
@@ -135,5 +137,13 @@ impl Readable for String {
     #[inline]
     fn read_from(reader: &mut impl Read) -> Result<Self, ReadError> {
         read_string(reader, MAX_STRING_LENGTH)
+    }
+}
+
+#[cfg(feature = "uuid")]
+impl Readable for Uuid {
+    #[inline]
+    fn read_from(reader: &mut impl Read) -> Result<Self, ReadError> {
+        Ok(Uuid::from_u128(u128::read_from(reader)?))
     }
 }

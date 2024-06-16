@@ -2,6 +2,8 @@ use core::fmt;
 use std::io::{self, Write};
 
 use paste::paste;
+#[cfg(feature = "uuid")]
+use uuid::Uuid;
 
 use crate::{VarWritable, Writable, WriteExt};
 
@@ -152,5 +154,13 @@ impl<T: Writable> Writable for Vec<T> {
     #[inline]
     fn write_to(&self, writer: &mut impl Write) -> io::Result<()> {
         self.as_slice().write_to(writer)
+    }
+}
+
+#[cfg(feature = "uuid")]
+impl Writable for Uuid {
+    #[inline]
+    fn write_to(&self, writer: &mut impl Write) -> io::Result<()> {
+        writer.write_u128(self.as_u128())
     }
 }

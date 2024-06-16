@@ -23,6 +23,7 @@ macro_rules! packet {
         $(#[$ty_meta:meta])*
         $vis:vis $name:ident {
             $(
+                $(#[doc = $doc:expr])*
                 $( $(@$var:tt)? #[var] )? $field_vis:vis $field_name:ident : $field_ty:ty $(= $(@$value:tt)? $read:expr ,  $write:expr  )?
             ),* $(,)?
         }
@@ -34,7 +35,10 @@ macro_rules! packet {
     } => {
         $(#[$ty_meta])*
         pub struct $name {
-            $( $field_vis $field_name : $field_ty, )*
+            $(
+                $(#[doc = $doc])*
+                $field_vis $field_name : $field_ty,
+            )*
         }
         impl Packet for $name {
             const $id_name: u32                     = $id_value;
