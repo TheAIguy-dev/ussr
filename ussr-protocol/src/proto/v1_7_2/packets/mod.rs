@@ -4,7 +4,6 @@ pub mod status;
 
 use std::io::{self, Read, Write};
 
-use bevy_ecs::component::Component;
 use ussr_buf::{
     read::read_array, write::write_array, Readable, Size, VarReadable, VarSize, VarWritable,
     Writable,
@@ -20,5 +19,4 @@ use crate::{
 // Using the latest enabled state
 use crate::proto::enums::State::{self, *};
 // But this version's enums and types
-use super::{enums, types};
-
+use super::enums;

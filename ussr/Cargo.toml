@@ -15,9 +15,3 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 ussr-buf = { version = "0.1.0", path = "../ussr-buf" }
 ussr-net = { version = "0.1.0", path = "../ussr-net" }
 ussr-protocol = { version = "0.1.0", path = "../ussr-protocol" }
-
-[features]
-default = ["server"]
-# temporary debug features
-server = []
-bench = ["ussr-net/bench"]
