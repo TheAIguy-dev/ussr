@@ -4,7 +4,7 @@ pub mod serverbound {
     use super::*;
 
     packet! {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Component)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
         pub StatusRequest {}
         const ID = 0x00,
         const DIRECTION = Serverbound,
@@ -14,7 +14,7 @@ pub mod serverbound {
     }
 
     packet! {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Component)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
         pub PingRequest {
             pub payload: u64,
         }
@@ -30,7 +30,7 @@ pub mod clientbound {
     use super::*;
 
     packet! {
-        #[derive(Debug, Clone, PartialEq, Eq, Component)]
+        #[derive(Debug, Clone, PartialEq, Eq)]
         pub StatusResponse {
             /// JSON
             pub response: String,
@@ -43,7 +43,7 @@ pub mod clientbound {
     }
 
     packet! {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Component)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
         pub PingResponse {
             pub payload: u64,
         }

@@ -4,7 +4,7 @@ pub mod serverbound {
     use super::*;
 
     packet! {
-        #[derive(Debug, Clone, PartialEq, Eq, Component)]
+        #[derive(Debug, Clone, PartialEq, Eq)]
         pub LoginStart {
             pub username: String,
         }
@@ -16,7 +16,7 @@ pub mod serverbound {
     }
 
     packet! {
-        #[derive(Debug, Clone, PartialEq, Eq, Component)]
+        #[derive(Debug, Clone, PartialEq, Eq)]
         pub EncryptionResponse {
             pub shared_secret: Vec<u8> = (read_array::<u16, u8>,  write_array::<u16, u8>),
             pub verify_token: Vec<u8> = (read_array::<u16, u8>, write_array::<u16, u8>),
@@ -33,7 +33,7 @@ pub mod clientbound {
     use super::*;
 
     packet! {
-        #[derive(Debug, Clone, PartialEq, Eq, Component)]
+        #[derive(Debug, Clone, PartialEq, Eq)]
         pub Disconnect {
             /// JSON
             pub reason: String,
@@ -46,7 +46,7 @@ pub mod clientbound {
     }
 
     packet! {
-        #[derive(Debug, Clone, PartialEq, Eq, Component)]
+        #[derive(Debug, Clone, PartialEq, Eq)]
         pub EncryptionRequest {
             pub server_id: String,
             pub public_key: Vec<u8> = (read_array::<u16, u8>, write_array::<u16, u8>),
@@ -60,7 +60,7 @@ pub mod clientbound {
     }
 
     packet! {
-        #[derive(Debug, Clone, PartialEq, Eq, Component)]
+        #[derive(Debug, Clone, PartialEq, Eq)]
         pub LoginSuccess {
             pub uuid: Uuid,
             pub username: String,

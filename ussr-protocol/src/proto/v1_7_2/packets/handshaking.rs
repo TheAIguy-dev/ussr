@@ -4,7 +4,7 @@ pub mod serverbound {
     use super::*;
 
     packet! {
-        #[derive(Debug, Clone, PartialEq, Eq, Component)]
+        #[derive(Debug, Clone, PartialEq, Eq)]
         pub Handshake {
             #[var]
             pub protocol_version: i32,
@@ -17,5 +17,8 @@ pub mod serverbound {
         const STATE = Handshaking,
         const MIN_SIZE = i32::MIN_SIZE + String::MIN_SIZE + u16::SIZE + enums::NextState::SIZE,
         const MAX_SIZE = i32::MAX_SIZE + String::MAX_SIZE + u16::SIZE + enums::NextState::SIZE,
+        const CAN_CHANGE_STATE = true,
     }
 }
+
+pub mod clientbound {}

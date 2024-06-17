@@ -38,11 +38,15 @@ pub trait Packet: Sized {
     /// The packet id.
     const ID: u32;
 
+    //? Maybe this is unnecessary.
     /// The packet direction.
     const DIRECTION: PacketDirection;
 
-    /// The state in which this packet is received/sent.
+    /// The connection state in which this packet is received/sent.
     const STATE: State;
+
+    /// Whether this packet can change the connection state.
+    const CAN_CHANGE_STATE: bool = false;
 
     /// The minimum size of the packet in bytes when serialized.
     const MIN_SIZE: usize;

@@ -27,11 +27,12 @@ macro_rules! packet {
                 $( $(@$var:tt)? #[var] )? $field_vis:vis $field_name:ident : $field_ty:ty $(= $(@$value:tt)? ($read:expr ,  $write:expr $(,)?)  )?
             ),* $(,)?
         }
-        const $id_name:ident         = $id_value:literal,
-        const $direction_name:ident  = $direction_value:ident,
-        const $state_name:ident      = $state_value:ident,
-        const $min_size_name:ident   = $min_size_value:expr,
-        const $max_size_name:ident   = $max_size_value:expr,
+        const $id_name:ident          = $id_value:literal,
+        const $direction_name:ident   = $direction_value:ident,
+        const $state_name:ident       = $state_value:ident,
+        const $min_size_name:ident    = $min_size_value:expr,
+        const $max_size_name:ident    = $max_size_value:expr $(,)?
+        $(, const $can_change_state:ident = $can_change_state_value:literal $(,)?)?
     } => {
         $(#[$ty_meta])*
         pub struct $name {
@@ -44,6 +45,7 @@ macro_rules! packet {
             const $id_name: u32                     = $id_value;
             const $direction_name: PacketDirection  = $direction_value;
             const $state_name: State                = $state_value;
+          $(const $can_change_state: bool           = $can_change_state_value;)?
             const $min_size_name: usize             = $min_size_value;
             const $max_size_name: usize             = $max_size_value;
 

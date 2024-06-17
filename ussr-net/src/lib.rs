@@ -1,7 +1,6 @@
 use std::{
     io::{self, Cursor, ErrorKind, Read, Write},
     net::{TcpListener, TcpStream},
-    ops::RangeInclusive,
     time::Instant,
 };
 
@@ -10,10 +9,15 @@ use bevy_ecs::prelude::*;
 use bytes::{Buf, BytesMut};
 use tracing::{info, instrument, trace, warn};
 use ussr_buf::{ReadError, VarReadable, VarSize, VarWritable};
+use ussr_net_macros::packet_decoder_map;
 use ussr_protocol::{
     proto::{
         enums::State,
-        packets::{handshaking, login, status},
+        packets::{
+            handshaking::serverbound::*,
+            login::{clientbound::*, serverbound::*},
+            status::{clientbound::*, serverbound::*},
+        },
     },
     Packet, PacketReadError,
 };
@@ -23,6 +27,11 @@ impl Plugin for UssrNetPlugin {
     fn build(&self, app: &mut bevy_app::App) {
         #[cfg(feature = "bench")]
         info!("Starting with benchmark mode active");
+
+        app.add_event::<PacketEvent<Handshake>>();
+        app.add_event::<PacketEvent<StatusRequest>>();
+        app.add_event::<PacketEvent<PingRequest>>();
+        app.add_event::<PacketEvent<LoginStart>>();
 
         app.insert_resource(Server::new()).add_systems(
             Update,
@@ -65,6 +74,7 @@ impl Server {
 
 /// A single connection to the server.
 /// This component is added automatically by [`accept_connections`].
+// TODO: Add timeout
 #[derive(Component)]
 pub struct Connection {
     stream: TcpStream,
@@ -86,6 +96,12 @@ impl Connection {
 
 #[derive(Component)]
 struct JoinTime(Instant);
+
+#[derive(Event)]
+struct PacketEvent<T: Packet> {
+    entity: Entity,
+    packet: T,
+}
 
 /// A system that accepts connections and spawns new entities with [`Connection`].
 /// The listener must be non-blocking, see [`TcpListener::set_nonblocking`].
@@ -129,11 +145,8 @@ fn read_data(mut commands: Commands, mut query: Query<(Entity, &mut Connection)>
                 connection.incoming_buf.extend_from_slice(&buf[..n]);
                 #[cfg(feature = "bench")]
                 {
-                    if connection.incoming_buf.len() == 16000000 {
-                        info!("Got 1_000_000 handshakes, starting timer");
-                        commands.entity(entity).insert(JoinTime(Instant::now()));
-                    } else if connection.incoming_buf.len() == 16000 {
-                        info!("Got 1_000 handshakes, starting timer");
+                    if connection.incoming_buf.len() == 20000016 {
+                        info!("Got 10_000_000 status requests, starting timer");
                         commands.entity(entity).insert(JoinTime(Instant::now()));
                     }
                 }
@@ -156,7 +169,7 @@ fn read_data(mut commands: Commands, mut query: Query<(Entity, &mut Connection)>
 #[instrument(skip_all, level = "trace")]
 fn check_frames(mut commands: Commands, mut query: Query<(Entity, &mut Connection, &JoinTime)>) {
     'entities: for (entity, mut connection, join_time) in &mut query {
-        if !connection.incoming_buf.is_empty() {
+        while !connection.incoming_buf.is_empty() {
             let mut buf: Cursor<&[u8]> = Cursor::new(&connection.incoming_buf[..]);
             let len_before_packet: usize = buf.remaining(); // The length of the buffer before reading anything
 
@@ -196,7 +209,7 @@ fn check_frames(mut commands: Commands, mut query: Query<(Entity, &mut Connectio
                         packet_id,
                         &mut packet_data,
                     ) {
-                        Ok(range) => {
+                        Ok(can_change_state) => {
                             let len_after_packet: usize = packet_data.remaining(); // The length of the buffer after reading the packet
 
                             // Ensure that packet data is empty.
@@ -211,6 +224,11 @@ fn check_frames(mut commands: Commands, mut query: Query<(Entity, &mut Connectio
                             connection
                                 .incoming_buf
                                 .advance(len_before_packet - len_before_data + packet_length);
+
+                            // If this packet can change the state, we can't continue parsing packets.
+                            if can_change_state {
+                                continue 'entities;
+                            }
                         }
                         // This is redundant, because we know we have enough bytes to be able to parse the packet.
                         // Err(PacketReadError::Io(_)) => continue 'entities,
@@ -231,102 +249,72 @@ fn check_frames(mut commands: Commands, mut query: Query<(Entity, &mut Connectio
                 // This means that we don't have enough bytes to read the packet length.
                 Err(_) => continue 'entities,
             }
-        } else {
-            #[cfg(feature = "bench")]
+        }
+
+        #[cfg(feature = "bench")]
+        {
             info!("Empty buffer, took: {:?}", join_time.0.elapsed());
-            commands.entity(entity).remove::<JoinTime>();
-            continue;
+            commands.entity(entity).despawn();
         }
     }
 }
 
 /// The current implementation will insert parse a packet and insert it as a component to the given entity.
-/// It will also return the allowed length range for the packet.
+/// It will return whether the parsed packet can change the state.
 #[instrument(skip_all, level = "trace")]
 fn parse_packet(
     commands: &mut Commands,
     entity: Entity,
     state: State,
     packet_id: u32,
-    buf: &mut Cursor<&[u8]>,
-) -> Result<RangeInclusive<usize>, PacketReadError> {
-    Ok(match state {
-        State::Handshaking => match packet_id {
-            handshaking::serverbound::Handshake::ID => {
-                use handshaking::serverbound::Handshake;
-                trace!("Reading handshake");
-                let p = Handshake::read(buf)?;
-                commands.entity(entity).insert(p);
-                Handshake::MIN_SIZE..=Handshake::MAX_SIZE
-            }
-            _ => return Err(PacketReadError::UnknownPacketId { packet_id, state }),
-        },
-        State::Status => match packet_id {
-            status::serverbound::StatusRequest::ID => {
-                use status::serverbound::StatusRequest;
-                trace!("Reading status request");
-                let p = StatusRequest::read(buf)?;
-                commands.entity(entity).insert(p);
-                StatusRequest::MIN_SIZE..=StatusRequest::MAX_SIZE
-            }
-            status::serverbound::PingRequest::ID => {
-                use status::serverbound::PingRequest;
-                trace!("Reading ping request");
-                let p = PingRequest::read(buf)?;
-                commands.entity(entity).insert(p);
-                PingRequest::MIN_SIZE..=PingRequest::MAX_SIZE
-            }
-            _ => return Err(PacketReadError::UnknownPacketId { packet_id, state }),
-        },
-        State::Login => match packet_id {
-            login::serverbound::LoginStart::ID => {
-                use login::serverbound::LoginStart;
-                trace!("Reading login start");
-                let p = LoginStart::read(buf)?;
-                commands.entity(entity).insert(p);
-                LoginStart::MIN_SIZE..=LoginStart::MAX_SIZE
-            }
-            _ => return Err(PacketReadError::UnknownPacketId { packet_id, state }),
-        },
-        State::Play => unimplemented!(),
-    })
+    reader: &mut impl Read,
+) -> Result<bool, PacketReadError> {
+    packet_decoder_map!(
+        commands, entity, state, packet_id, reader,
+        State::Handshaking => (Handshake),
+        State::Status => (StatusRequest, PingRequest),
+        State::Login => (LoginStart, EncryptionResponse),
+        _ => (),
+    )
+}
+
+/// This function reads a packet of type T and dispatches it to `Events<PacketEvent<T>>`.
+#[instrument(skip_all, level = "trace")]
+fn dispath_packet<T: Packet + Send + Sync + 'static>(
+    commands: &mut Commands,
+    entity: Entity,
+    reader: &mut impl Read,
+) -> Result<(), PacketReadError> {
+    let packet: T = T::read(reader)?;
+    commands.add(move |world: &mut World| {
+        world.send_event(PacketEvent { entity, packet });
+    });
+    Ok(())
 }
 
 #[instrument(skip_all, level = "trace")]
 fn handle_handshake(
-    mut commands: Commands,
-    mut query: Query<
-        (
-            Entity,
-            &mut Connection,
-            &handshaking::serverbound::Handshake,
-        ),
-        Added<handshaking::serverbound::Handshake>,
-    >,
+    mut query: Query<&mut Connection>,
+    mut handshake_rx: EventReader<PacketEvent<Handshake>>,
 ) {
-    for (entity, mut connection, handshake) in &mut query {
-        trace!("Handshake received, next state: {}", handshake.next_state);
-
-        #[cfg(not(feature = "bench"))]
-        {
-            connection.state = handshake.next_state.into();
+    for PacketEvent { entity, packet } in handshake_rx.read() {
+        trace!("Handshake received, next state: {}", packet.next_state);
+        if let Ok(mut connection) = query.get_mut(*entity) {
+            connection.state = packet.next_state.into();
         }
-
-        commands
-            .entity(entity)
-            .remove::<handshaking::serverbound::Handshake>();
     }
 }
 
 #[instrument(skip_all, level = "trace")]
 fn handle_status_request(
-    mut commands: Commands,
-    mut query: Query<(Entity, &mut Connection), Added<status::serverbound::StatusRequest>>,
+    mut query: Query<&mut Connection>,
+    mut status_request_rx: EventReader<PacketEvent<StatusRequest>>,
 ) {
-    for (entity, mut connection) in &mut query {
+    for PacketEvent { entity, .. } in status_request_rx.read() {
         trace!("Status request received");
-        let buf: Vec<u8> = serialize_packet(status::clientbound::StatusResponse {
-            response: r#"
+        if let Ok(mut connection) = query.get_mut(*entity) {
+            let buf: Vec<u8> = serialize_packet(StatusResponse {
+                response: r#"
             {
                 "version": {
                     "name": "1.7.2",
@@ -342,57 +330,55 @@ fn handle_status_request(
                 }
             }
             "#
-            .to_string(),
-        });
-        connection.stream.write_all(&buf).unwrap();
-        commands
-            .entity(entity)
-            .remove::<status::serverbound::StatusRequest>();
+                .to_string(),
+            });
+            connection.stream.write_all(&buf).unwrap();
+        }
     }
 }
 
 #[instrument(skip_all, level = "trace")]
 fn handle_ping_request(
     mut commands: Commands,
-    mut query: Query<
-        (Entity, &mut Connection, &status::serverbound::PingRequest),
-        Added<status::serverbound::PingRequest>,
-    >,
+    mut query: Query<&mut Connection>,
+    mut ping_request_rx: EventReader<PacketEvent<PingRequest>>,
 ) {
-    for (entity, mut connection, ping_request) in &mut query {
+    for PacketEvent { entity, packet } in ping_request_rx.read() {
         trace!("Ping request received");
-        let buf: Vec<u8> = serialize_packet(status::clientbound::PingResponse {
-            payload: ping_request.payload,
-        });
-        connection.stream.write_all(&buf).unwrap();
-        commands.entity(entity).despawn();
+        if let Ok(mut connection) = query.get_mut(*entity) {
+            let buf: Vec<u8> = serialize_packet(PingResponse {
+                payload: packet.payload,
+            });
+            connection.stream.write_all(&buf).unwrap();
+            commands.entity(*entity).despawn();
+        }
     }
 }
 
 #[instrument(skip_all, level = "trace")]
 fn handle_login_start(
     mut commands: Commands,
-    mut query: Query<
-        (Entity, &mut Connection, &login::serverbound::LoginStart),
-        Added<login::serverbound::LoginStart>,
-    >,
+    mut query: Query<&mut Connection>,
+    mut login_start_rx: EventReader<PacketEvent<LoginStart>>,
 ) {
-    for (entity, mut connection, login_start) in &mut query {
+    for PacketEvent { entity, packet } in login_start_rx.read() {
         trace!("Login start received");
-        let buf: Vec<u8> = serialize_packet(login::clientbound::Disconnect {
-            reason: format!(
-                r#"
-            {{
-                "text": "Fuck off, {}",
-                "color": "red",
-                "bold": true
-            }}
-            "#,
-                login_start.username
-            ),
-        });
-        connection.stream.write_all(&buf).unwrap();
-        commands.entity(entity).despawn();
+        if let Ok(mut connection) = query.get_mut(*entity) {
+            let buf: Vec<u8> = serialize_packet(Disconnect {
+                reason: format!(
+                    r#"
+                {{
+                    "text": "Fuck off, {}",
+                    "color": "red",
+                    "bold": true
+                }}
+                "#,
+                    packet.username
+                ),
+            });
+            connection.stream.write_all(&buf).unwrap();
+            commands.entity(*entity).despawn();
+        }
     }
 }
 

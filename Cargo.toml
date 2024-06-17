@@ -4,6 +4,7 @@ members = [
     "ussr-buf",
     "ussr-nbt",
     "ussr-net",
+    "ussr-net/ussr-net-macros",
     "ussr-protocol",
     "ussr-protocol/ussr-protocol-macros",
 ]
