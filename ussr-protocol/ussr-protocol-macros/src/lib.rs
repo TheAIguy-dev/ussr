@@ -24,7 +24,7 @@ macro_rules! packet {
         $vis:vis $name:ident {
             $(
                 $(#[doc = $doc:expr])*
-                $( $(@$var:tt)? #[var] )? $field_vis:vis $field_name:ident : $field_ty:ty $(= $(@$value:tt)? $read:expr ,  $write:expr  )?
+                $( $(@$var:tt)? #[var] )? $field_vis:vis $field_name:ident : $field_ty:ty $(= $(@$value:tt)? ($read:expr ,  $write:expr $(,)?)  )?
             ),* $(,)?
         }
         const $id_name:ident         = $id_value:literal,

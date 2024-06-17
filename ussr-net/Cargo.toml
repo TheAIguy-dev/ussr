@@ -10,3 +10,7 @@ bytes = "1.6.0"
 tracing = "0.1.40"
 ussr-buf = { version = "0.1.0", path = "../ussr-buf" }
 ussr-protocol = { version = "0.1.0", path = "../ussr-protocol" }
+
+[features]
+default = []
+bench = []

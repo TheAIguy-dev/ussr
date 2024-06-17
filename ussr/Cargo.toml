@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 bevy_app = { version = "0.13.2", default-features = false }
 bytes = "1.6.0"
+cfg-if = "1.0.0"
 chrono = "0.4.38"
 nu-ansi-term = "0.50.0"
 tracing = "0.1.40"
@@ -18,3 +19,4 @@ ussr-protocol = { version = "0.1.0", path = "../ussr-protocol" }
 [features]
 default = ["server"]
 server = []
+bench = ["ussr-net/bench"]

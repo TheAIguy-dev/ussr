@@ -21,6 +21,9 @@ use ussr_protocol::{
 pub struct UssrNetPlugin;
 impl Plugin for UssrNetPlugin {
     fn build(&self, app: &mut bevy_app::App) {
+        #[cfg(feature = "bench")]
+        info!("Starting with benchmark mode active");
+
         app.insert_resource(Server::new()).add_systems(
             Update,
             (
@@ -82,7 +85,7 @@ impl Connection {
 }
 
 #[derive(Component)]
-struct StartTime(Instant);
+struct JoinTime(Instant);
 
 /// A system that accepts connections and spawns new entities with [`Connection`].
 /// The listener must be non-blocking, see [`TcpListener::set_nonblocking`].
@@ -112,20 +115,31 @@ fn read_data(mut commands: Commands, mut query: Query<(Entity, &mut Connection)>
         match connection.stream.read(&mut buf) {
             // Connection closed
             Ok(0) => {
-                trace!("Connection closed");
-                commands.entity(entity).despawn();
+                #[cfg(not(feature = "bench"))]
+                {
+                    trace!("Connection closed");
+                    //? Maybe we shouldn't despawn the entity, and process the leftower data?
+                    commands.entity(entity).despawn();
+                }
                 // commands.entity(entity).remove::<Connection>();
             }
             // Successful read
             Ok(n) => {
                 trace!("Read {n} bytes");
                 connection.incoming_buf.extend_from_slice(&buf[..n]);
-                if connection.incoming_buf.len() == 16000000 {
-                    info!("Got 1_000_000 handshakes, starting timer");
-                    commands.entity(entity).insert(StartTime(Instant::now()));
-                } else if connection.incoming_buf.len() == 16000 {
-                    info!("Got 1_000 handshakes, starting timer");
-                    commands.entity(entity).insert(StartTime(Instant::now()));
+                #[cfg(feature = "bench")]
+                {
+                    if connection.incoming_buf.len() == 16000000 {
+                        info!("Got 1_000_000 handshakes, starting timer");
+                        commands.entity(entity).insert(JoinTime(Instant::now()));
+                    } else if connection.incoming_buf.len() == 16000 {
+                        info!("Got 1_000 handshakes, starting timer");
+                        commands.entity(entity).insert(JoinTime(Instant::now()));
+                    }
+                }
+                #[cfg(not(feature = "bench"))]
+                {
+                    commands.entity(entity).insert(JoinTime(Instant::now()));
                 }
             }
             // Wood block
@@ -140,50 +154,74 @@ fn read_data(mut commands: Commands, mut query: Query<(Entity, &mut Connection)>
 }
 
 #[instrument(skip_all, level = "trace")]
-fn check_frames(mut commands: Commands, mut query: Query<(Entity, &mut Connection, &StartTime)>) {
-    'entities: for (entity, mut connection, start_time) in &mut query {
-        while !connection.incoming_buf.is_empty() {
+fn check_frames(mut commands: Commands, mut query: Query<(Entity, &mut Connection, &JoinTime)>) {
+    'entities: for (entity, mut connection, join_time) in &mut query {
+        if !connection.incoming_buf.is_empty() {
             let mut buf: Cursor<&[u8]> = Cursor::new(&connection.incoming_buf[..]);
-            let og_len: usize = buf.remaining();
+            let len_before_packet: usize = buf.remaining(); // The length of the buffer before reading anything
+
             // Try to read the packet length
             match usize::read_var_from(&mut buf) {
                 Ok(packet_length) => {
-                    let len_before_id: usize = buf.remaining();
-                    // Check if we have enough bytes to parse the packet
-                    if packet_length <= buf.remaining() {
-                        if packet_length < usize::MIN_SIZE {
-                            trace!("Invalid packet length (0), despawning entity");
-                            commands.entity(entity).despawn();
-                            continue 'entities;
-                        }
+                    // Check that the packet length is valid
+                    if packet_length < usize::MIN_SIZE {
+                        trace!("Invalid packet length (0), despawning entity");
+                        commands.entity(entity).despawn();
+                        continue 'entities;
+                    }
 
-                        // Parse the packet
-                        match parse_packet(
-                            &mut commands,
-                            entity,
-                            packet_length,
-                            connection.state,
-                            &mut buf,
-                        ) {
-                            Ok(is_valid_len) => {
-                                let new_len: usize = buf.remaining();
-                                // Ensure that we read the correct amount of bytes
-                                if is_valid_len {
-                                    connection.incoming_buf.advance(og_len - new_len);
-                                } else {
-                                    trace!("Invalid packet length ({packet_length}, read {} bytes), despawning entity", len_before_id - new_len);
-                                    commands.entity(entity).despawn();
-                                }
-                            }
-                            Err(PacketReadError::Io(_)) => continue 'entities,
-                            Err(e) => {
-                                trace!("Parse error: {e:?}, despawning entity");
+                    // Check if we have enough bytes to parse the packet
+                    if packet_length > buf.remaining() {
+                        continue 'entities;
+                    }
+
+                    // We know we have enough bytes, so it's safe to index into the buffer.
+                    let mut packet_data: Cursor<&[u8]> = Cursor::new(
+                        &buf.get_ref()
+                            [buf.position() as usize..buf.position() as usize + packet_length],
+                    );
+
+                    let len_before_data: usize = buf.remaining(); // The length of the buffer before reading the packet data
+                    let Ok(packet_id) = u32::read_var_from(&mut packet_data) else {
+                        trace!("Invalid packet id, despawning entity");
+                        commands.entity(entity).despawn();
+                        continue 'entities;
+                    };
+
+                    // Parse the packet
+                    match parse_packet(
+                        &mut commands,
+                        entity,
+                        connection.state,
+                        packet_id,
+                        &mut packet_data,
+                    ) {
+                        Ok(range) => {
+                            let len_after_packet: usize = packet_data.remaining(); // The length of the buffer after reading the packet
+
+                            // Ensure that packet data is empty.
+                            // If it's not, this means that packet length was invalid.
+                            if len_after_packet != 0 {
+                                trace!("Leftover packet data, despawning entity");
                                 commands.entity(entity).despawn();
                                 continue 'entities;
                             }
+
+                            // Advance the buffer to the end of the packet
+                            connection
+                                .incoming_buf
+                                .advance(len_before_packet - len_before_data + packet_length);
+                        }
+                        // This is redundant, because we know we have enough bytes to be able to parse the packet.
+                        // Err(PacketReadError::Io(_)) => continue 'entities,
+                        Err(e) => {
+                            trace!("Parse error: {e:?}, despawning entity");
+                            commands.entity(entity).despawn();
+                            continue 'entities;
                         }
                     }
                 }
+                // The packet length was invalid
                 Err(ReadError::InvalidVarInt) => {
                     trace!("Invalid packet length, despawning entity");
                     commands.entity(entity).despawn();
@@ -193,72 +231,65 @@ fn check_frames(mut commands: Commands, mut query: Query<(Entity, &mut Connectio
                 // This means that we don't have enough bytes to read the packet length.
                 Err(_) => continue 'entities,
             }
-        }
-
-        if connection.incoming_buf.is_empty() {
-            info!("Empty buffer, took: {:?}", start_time.0.elapsed());
-            commands.entity(entity).remove::<StartTime>();
+        } else {
+            #[cfg(feature = "bench")]
+            info!("Empty buffer, took: {:?}", join_time.0.elapsed());
+            commands.entity(entity).remove::<JoinTime>();
             continue;
         }
     }
 }
 
-/// The current implementation will parse the packet id, then the packet itself. It will insert that packet as a component to the given entity.
-///
-/// It will return whether the packet length was valid, AKA contained in the allowed range for the packet.
+/// The current implementation will insert parse a packet and insert it as a component to the given entity.
+/// It will also return the allowed length range for the packet.
 #[instrument(skip_all, level = "trace")]
 fn parse_packet(
     commands: &mut Commands,
     entity: Entity,
-    packet_length: usize,
     state: State,
+    packet_id: u32,
     buf: &mut Cursor<&[u8]>,
-) -> Result<bool, PacketReadError> {
-    let len_before_id: usize = buf.remaining();
-    let packet_id: u32 = u32::read_var_from(buf)?;
-    let packet_id_len: usize = len_before_id - buf.remaining();
-
-    let range: RangeInclusive<usize> = match state {
+) -> Result<RangeInclusive<usize>, PacketReadError> {
+    Ok(match state {
         State::Handshaking => match packet_id {
             handshaking::serverbound::Handshake::ID => {
+                use handshaking::serverbound::Handshake;
                 trace!("Reading handshake");
-                let p = handshaking::serverbound::Handshake::read(buf)?;
+                let p = Handshake::read(buf)?;
                 commands.entity(entity).insert(p);
-                handshaking::serverbound::Handshake::MIN_SIZE
-                    ..=handshaking::serverbound::Handshake::MAX_SIZE
+                Handshake::MIN_SIZE..=Handshake::MAX_SIZE
             }
             _ => return Err(PacketReadError::UnknownPacketId { packet_id, state }),
         },
         State::Status => match packet_id {
             status::serverbound::StatusRequest::ID => {
+                use status::serverbound::StatusRequest;
                 trace!("Reading status request");
-                let p = status::serverbound::StatusRequest::read(buf)?;
+                let p = StatusRequest::read(buf)?;
                 commands.entity(entity).insert(p);
-                status::serverbound::StatusRequest::MIN_SIZE
-                    ..=status::serverbound::StatusRequest::MAX_SIZE
+                StatusRequest::MIN_SIZE..=StatusRequest::MAX_SIZE
             }
             status::serverbound::PingRequest::ID => {
+                use status::serverbound::PingRequest;
                 trace!("Reading ping request");
-                let p = status::serverbound::PingRequest::read(buf)?;
+                let p = PingRequest::read(buf)?;
                 commands.entity(entity).insert(p);
-                status::serverbound::PingRequest::MIN_SIZE
-                    ..=status::serverbound::PingRequest::MAX_SIZE
+                PingRequest::MIN_SIZE..=PingRequest::MAX_SIZE
             }
             _ => return Err(PacketReadError::UnknownPacketId { packet_id, state }),
         },
         State::Login => match packet_id {
             login::serverbound::LoginStart::ID => {
+                use login::serverbound::LoginStart;
                 trace!("Reading login start");
-                let p = login::serverbound::LoginStart::read(buf)?;
+                let p = LoginStart::read(buf)?;
                 commands.entity(entity).insert(p);
-                login::serverbound::LoginStart::MIN_SIZE..=login::serverbound::LoginStart::MAX_SIZE
+                LoginStart::MIN_SIZE..=LoginStart::MAX_SIZE
             }
             _ => return Err(PacketReadError::UnknownPacketId { packet_id, state }),
         },
         State::Play => unimplemented!(),
-    };
-
-    Ok(range.contains(&(packet_length - packet_id_len)))
+    })
 }
 
 #[instrument(skip_all, level = "trace")]
@@ -275,7 +306,12 @@ fn handle_handshake(
 ) {
     for (entity, mut connection, handshake) in &mut query {
         trace!("Handshake received, next state: {}", handshake.next_state);
-        // connection.state = handshake.next_state.into();
+
+        #[cfg(not(feature = "bench"))]
+        {
+            connection.state = handshake.next_state.into();
+        }
+
         commands
             .entity(entity)
             .remove::<handshaking::serverbound::Handshake>();

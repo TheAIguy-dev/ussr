@@ -18,8 +18,8 @@ pub mod serverbound {
     packet! {
         #[derive(Debug, Clone, PartialEq, Eq, Component)]
         pub EncryptionResponse {
-            pub shared_secret: Vec<u8> = read_array::<u16, u8>,  write_array::<u16, u8>,
-            pub verify_token: Vec<u8> = read_array::<u16, u8>, write_array::<u16, u8>,
+            pub shared_secret: Vec<u8> = (read_array::<u16, u8>,  write_array::<u16, u8>),
+            pub verify_token: Vec<u8> = (read_array::<u16, u8>, write_array::<u16, u8>),
         }
         const ID = 0x01,
         const DIRECTION = Serverbound,
@@ -49,8 +49,8 @@ pub mod clientbound {
         #[derive(Debug, Clone, PartialEq, Eq, Component)]
         pub EncryptionRequest {
             pub server_id: String,
-            pub public_key: Vec<u8> = read_array::<u16, u8>, write_array::<u16, u8>,
-            pub verify_token: Vec<u8> = read_array::<u16, u8>, write_array::<u16, u8>,
+            pub public_key: Vec<u8> = (read_array::<u16, u8>, write_array::<u16, u8>),
+            pub verify_token: Vec<u8> = (read_array::<u16, u8>, write_array::<u16, u8>),
         }
         const ID = 0x01,
         const DIRECTION = Clientbound,
