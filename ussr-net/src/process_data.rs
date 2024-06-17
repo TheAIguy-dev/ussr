@@ -76,6 +76,8 @@ pub(crate) fn process_data(mut commands: Commands, mut query: Query<(Entity, &mu
                             // Update the connection state
                             if let Some(state) = state {
                                 connection.state = state;
+                            } else {
+                                continue 'entities;
                             }
                         }
                         // This is redundant, because we know we have enough bytes to be able to parse the packet.
