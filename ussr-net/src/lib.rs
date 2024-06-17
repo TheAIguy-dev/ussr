@@ -239,12 +239,14 @@ fn check_frames(mut commands: Commands, mut query: Query<(Entity, &mut Connectio
                         }
                     }
                 }
+
                 // The packet length was invalid
                 Err(ReadError::InvalidVarInt) => {
                     trace!("Invalid packet length, despawning entity");
                     commands.entity(entity).despawn();
                     continue 'entities;
                 }
+
                 // Every other error is an IO error.
                 // This means that we don't have enough bytes to read the packet length.
                 Err(_) => continue 'entities,
