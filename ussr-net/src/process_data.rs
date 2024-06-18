@@ -1,48 +1,61 @@
 use std::io::{Cursor, Read};
 
 use bevy_ecs::prelude::*;
-use bytes::Buf;
+use bytes::{Buf, BytesMut};
 use tracing::{instrument, trace, warn};
 use ussr_buf::{ReadError, VarReadable, VarSize};
 use ussr_protocol::{
     proto::{
         enums::{NextState, State},
-        packets::{handshaking::serverbound::*, login::serverbound::*, status::serverbound::*},
+        packets::{
+            handshaking::serverbound::*,
+            login::{clientbound::Disconnect, serverbound::*},
+            status::{
+                clientbound::{PingResponse, StatusResponse},
+                serverbound::*,
+            },
+        },
     },
     Packet, PacketReadError,
 };
 
-use crate::{Connection, PacketEvent};
+use crate::{serialize_packet, Connection};
 
 #[instrument(skip_all, level = "trace")]
 pub(crate) fn process_data(mut commands: Commands, mut query: Query<(Entity, &mut Connection)>) {
     'entities: for (entity, mut connection) in &mut query {
         while !connection.incoming_buf.is_empty() {
             let mut buf: Cursor<&[u8]> = Cursor::new(&connection.incoming_buf[..]);
-            let len_before_packet: usize = buf.remaining(); // The length of the buffer before reading anything
+            let len_before_length = buf.remaining(); // Length of the buffer before reading packet length
 
             // Try to read the packet length
             match usize::read_var_from(&mut buf) {
                 Ok(packet_length) => {
+                    let len_after_length = buf.remaining();
+
                     // Check that the packet length is valid
-                    if packet_length < usize::MIN_SIZE {
+                    if packet_length < usize::MIN_SIZE
+                        || packet_length > 0b111_1111__111_1111__111_1111
+                    {
                         trace!("Invalid packet length (0), despawning entity");
                         commands.entity(entity).despawn();
                         continue 'entities;
                     }
 
                     // Check if we have enough bytes to parse the packet
-                    if packet_length > buf.remaining() {
+                    if packet_length > len_after_length {
                         continue 'entities;
                     }
 
-                    // We know we have enough bytes, so it's safe to index into the buffer.
-                    let mut packet_data: Cursor<&[u8]> = Cursor::new(
-                        &buf.get_ref()
-                            [buf.position() as usize..buf.position() as usize + packet_length],
-                    );
+                    // Remove the packet length from the buffer
+                    connection
+                        .incoming_buf
+                        .advance(len_before_length - len_after_length);
 
-                    let len_before_data: usize = buf.remaining(); // The length of the buffer before reading the packet data
+                    // Split the buffer into the packet data and the rest
+                    let packet_data: BytesMut = connection.incoming_buf.split_to(packet_length);
+                    let mut packet_data: Cursor<&[u8]> = Cursor::new(&packet_data[..]);
+
                     let Ok(packet_id) = u32::read_var_from(&mut packet_data) else {
                         trace!("Invalid packet id, despawning entity");
                         commands.entity(entity).despawn();
@@ -51,37 +64,27 @@ pub(crate) fn process_data(mut commands: Commands, mut query: Query<(Entity, &mu
 
                     // Parse the packet
                     match parse_packet(
-                        &mut commands,
-                        entity,
-                        connection.state,
+                        // &mut commands,
+                        // entity,
+                        &mut connection,
                         packet_id,
                         &mut packet_data,
                     ) {
-                        Ok(state) => {
-                            let len_after_packet: usize = packet_data.remaining(); // The length of the buffer after reading the packet
-
+                        Ok(_) => {
                             // Ensure that packet data is empty.
                             // If it's not, this means that packet length was invalid.
-                            if len_after_packet != 0 {
+                            if packet_data.remaining() != 0 {
                                 trace!("Leftover packet data, despawning entity");
                                 commands.entity(entity).despawn();
                                 continue 'entities;
                             }
 
-                            // Advance the buffer to the end of the packet
-                            connection
-                                .incoming_buf
-                                .advance(len_before_packet - len_before_data + packet_length);
-
-                            // Update the connection state
-                            if let Some(state) = state {
-                                connection.state = state;
-                            } else {
-                                continue 'entities;
-                            }
+                            // // Update the connection state
+                            // if let Some(state) = state {
+                            //     connection.state = state;
+                            // }
                         }
-                        // This is redundant, because we know we have enough bytes to be able to parse the packet.
-                        // Err(PacketReadError::Io(_)) => continue 'entities,
+
                         Err(e) => {
                             trace!("Parse error: {e:?}, despawning entity");
                             commands.entity(entity).despawn();
@@ -109,71 +112,81 @@ pub(crate) fn process_data(mut commands: Commands, mut query: Query<(Entity, &mu
 /// It will return a state to transition to.
 #[instrument(skip_all, level = "trace")]
 fn parse_packet(
-    commands: &mut Commands,
-    entity: Entity,
-    state: State,
+    // commands: &mut Commands,
+    // entity: Entity,
+    connection: &mut Connection,
     packet_id: u32,
     reader: &mut impl Read,
-) -> Result<Option<State>, PacketReadError> {
-    match state {
+) -> Result<(), PacketReadError> {
+    match connection.state {
         State::Handshaking => match packet_id {
             Handshake::ID => {
                 trace!("Reading handshake");
                 let p: Handshake = Handshake::read(reader)?;
                 let next_state: NextState = p.next_state;
-                dispath_packet::<Handshake>(commands, entity, p)?;
-                Ok(Some(next_state.into()))
+                connection.state = next_state.into();
             }
-            _ => return Err(PacketReadError::UnknownPacketId { packet_id, state }),
+            _ => {
+                return Err(PacketReadError::UnknownPacketId {
+                    packet_id,
+                    state: connection.state,
+                })
+            }
         },
         State::Status => match packet_id {
             StatusRequest::ID => {
                 trace!("Reading status request");
-                dispath_packet::<StatusRequest>(commands, entity, StatusRequest::read(reader)?)?;
-                Ok(None)
+                let p = StatusRequest::read(reader)?;
+                let buf: Vec<u8> = serialize_packet(StatusResponse {
+                    response: r#"{"version":{"name":"1.7.2","protocol":4},"players":{"max":100,"online":0,"sample":[]},"description":{"text":"Hello, world!"}}"#.to_string(),
+                });
+                connection.outgoing_buf.extend_from_slice(&buf);
             }
             PingRequest::ID => {
                 trace!("Reading ping request");
-                dispath_packet::<PingRequest>(commands, entity, PingRequest::read(reader)?)?;
-                Ok(None)
+                let p = PingRequest::read(reader)?;
+                let buf: Vec<u8> = serialize_packet(PingResponse { payload: p.payload });
+                connection.outgoing_buf.extend_from_slice(&buf);
             }
-            _ => return Err(PacketReadError::UnknownPacketId { packet_id, state }),
+            _ => {
+                return Err(PacketReadError::UnknownPacketId {
+                    packet_id,
+                    state: connection.state,
+                })
+            }
         },
         State::Login => match packet_id {
             LoginStart::ID => {
                 trace!("Reading login start");
-                dispath_packet::<LoginStart>(commands, entity, LoginStart::read(reader)?)?;
-                Ok(None)
+                let p = LoginStart::read(reader)?;
+                let buf: Vec<u8> = serialize_packet(Disconnect {
+                    reason: format!(
+                        r#"{{"text": "Fuck off, {}","color": "red","bold": true}}"#,
+                        p.username
+                    ),
+                });
+                connection.outgoing_buf.extend_from_slice(&buf);
             }
             EncryptionResponse::ID => {
                 trace!("Reading encryption response");
-                dispath_packet::<EncryptionResponse>(
-                    commands,
-                    entity,
-                    EncryptionResponse::read(reader)?,
-                )?;
-                Ok(None)
+                let p = EncryptionResponse::read(reader)?;
             }
-            _ => return Err(PacketReadError::UnknownPacketId { packet_id, state }),
+            _ => {
+                return Err(PacketReadError::UnknownPacketId {
+                    packet_id,
+                    state: connection.state,
+                })
+            }
         },
         _ => match packet_id {
-            _ => return Err(PacketReadError::UnknownPacketId { packet_id, state }),
+            _ => {
+                return Err(PacketReadError::UnknownPacketId {
+                    packet_id,
+                    state: connection.state,
+                })
+            }
         },
     }
-}
 
-/// This function dispatches a packet of type `T` as an event.
-#[instrument(skip_all, level = "trace")]
-fn dispath_packet<P>(
-    commands: &mut Commands,
-    entity: Entity,
-    packet: P,
-) -> Result<(), PacketReadError>
-where
-    P: Packet + Send + Sync + 'static,
-{
-    commands.add(move |world: &mut World| {
-        world.send_event(PacketEvent { entity, packet });
-    });
     Ok(())
 }

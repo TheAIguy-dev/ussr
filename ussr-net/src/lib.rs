@@ -1,8 +1,7 @@
-mod handlers;
 mod process_data;
 
 use std::{
-    io::{self, ErrorKind, Read},
+    io::{self, ErrorKind, Read, Write},
     net::{TcpListener, TcpStream},
 };
 
@@ -11,40 +10,16 @@ use bevy_ecs::prelude::*;
 use bytes::BytesMut;
 use tracing::{instrument, trace, warn};
 use ussr_buf::VarWritable;
-use ussr_protocol::{
-    proto::{
-        enums::State,
-        packets::{handshaking::serverbound::*, login::serverbound::*, status::serverbound::*},
-    },
-    Packet,
-};
+use ussr_protocol::{proto::enums::State, Packet};
 
 use process_data::process_data;
 
 pub struct UssrNetPlugin;
 impl Plugin for UssrNetPlugin {
     fn build(&self, app: &mut bevy_app::App) {
-        app.add_event::<PacketEvent<Handshake>>();
-        app.add_event::<PacketEvent<StatusRequest>>();
-        app.add_event::<PacketEvent<PingRequest>>();
-        app.add_event::<PacketEvent<LoginStart>>();
-
-        use handlers::{handshaking::*, login::*, status::*};
         app.insert_resource(Server::new()).add_systems(
             Update,
-            (
-                accept_connections,
-                read_data,
-                process_data,
-                // packet handlers
-                (
-                    handle_handshake,
-                    handle_status_request,
-                    handle_ping_request,
-                    handle_login_start,
-                ),
-            )
-                .chain(),
+            (accept_connections, read_data, process_data, send_data).chain(),
         );
     }
 }
@@ -77,6 +52,7 @@ struct Connection {
     stream: TcpStream,
     state: State,
     incoming_buf: BytesMut, //? Maybe it should be a vector of frames
+    outgoing_buf: Vec<u8>,
 }
 impl Connection {
     /// Create a new connection.
@@ -87,14 +63,9 @@ impl Connection {
             stream,
             state: State::Handshaking,
             incoming_buf: BytesMut::new(),
+            outgoing_buf: vec![],
         })
     }
-}
-
-#[derive(Event)]
-struct PacketEvent<T: Packet> {
-    entity: Entity,
-    packet: T,
 }
 
 /// A system that accepts connections and spawns new entities with [`Connection`].
@@ -151,6 +122,34 @@ pub fn serialize_packet<T: Packet>(packet: T) -> Vec<u8> {
     let new_len: usize = buf.len();
     buf.rotate_right(new_len - len);
     buf
+}
+
+#[instrument(skip_all, level = "trace")]
+fn send_data(mut commands: Commands, mut query: Query<(Entity, &mut Connection)>) {
+    for (entity, mut connection) in &mut query {
+        if connection.outgoing_buf.is_empty() {
+            continue;
+        }
+
+        let mut outgoing_buf: Vec<u8> = std::mem::take(&mut connection.outgoing_buf);
+        match connection.stream.write(&outgoing_buf) {
+            // Successful write
+            Ok(n) => {
+                trace!("Wrote {n} bytes");
+                std::mem::swap(&mut connection.outgoing_buf, &mut outgoing_buf);
+                connection.outgoing_buf.drain(..n);
+            }
+
+            // Wood block
+            Err(e) if e.kind() == ErrorKind::WouldBlock => continue,
+
+            // Other error
+            Err(e) => {
+                warn!("Error: {e:?}");
+                commands.entity(entity).despawn();
+            }
+        }
+    }
 }
 
 // TODO: system for writing outgoing data

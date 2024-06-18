@@ -11,7 +11,6 @@ macro_rules! impl_readable {
         paste! {
             $(
                 impl Readable for $type {
-                    #[inline]
                     fn read_from(reader: &mut impl Read) -> Result<Self, ReadError> {
                         Ok(reader.[<read_ $type>]()?)
                     }
@@ -25,23 +24,27 @@ impl_readable!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64);
 /// Reads a string from the reader, with a maximum length `max_length`.
 ///
 /// `max_length` is in characters, not bytes.
+
 pub fn read_string(reader: &mut impl Read, max_length: usize) -> Result<String, ReadError> {
     let length: usize = usize::read_var_from(reader)?;
 
     if length > max_length * 3 {
-        return Err(ReadError::InvalidStringLength {
-            max: max_length * 3,
-            actual: length,
-        });
+        return Err(
+            ReadError::InvalidStringLength, // {
+                                            // max: max_length * 3,
+                                            // actual: length,
+                                            // }
+        );
     }
 
     let mut bytes: Vec<u8> = vec![0; length];
     reader.read_exact(&mut bytes)?;
     // TODO: make a fast utf-8 validator
-    Ok(String::from_utf8(bytes)?)
+    Ok(String::from_utf8(bytes).map_err(|_| ReadError::InvalidUtf8)?)
 }
 
 /// Read an array from the reader, prefixed with its length as a fixed-size readable type `L`.
+
 pub fn read_array<L, T>(reader: &mut impl Read) -> Result<Vec<T>, ReadError>
 where
     L: Readable + Into<usize>,
@@ -56,6 +59,7 @@ where
 }
 
 /// Read an array from the reader, prefixed with its length as a variable-sized readable type `L`.
+
 pub fn read_var_array<L, T>(reader: &mut impl Read) -> Result<Vec<T>, ReadError>
 where
     L: VarReadable + Into<usize>,
@@ -70,7 +74,6 @@ where
 }
 
 impl Readable for bool {
-    #[inline]
     fn read_from(reader: &mut impl Read) -> Result<Self, ReadError> {
         Ok(reader.read_u8()? != 0)
     }
@@ -91,7 +94,6 @@ impl VarReadable for u32 {
 }
 
 impl VarReadable for i32 {
-    #[inline]
     fn read_var_from(reader: &mut impl Read) -> Result<Self, ReadError> {
         Ok(u32::read_var_from(reader)? as i32)
     }
@@ -112,7 +114,6 @@ impl VarReadable for u64 {
 }
 
 impl VarReadable for i64 {
-    #[inline]
     fn read_var_from(reader: &mut impl Read) -> Result<Self, ReadError> {
         Ok(u64::read_var_from(reader)? as i64)
     }
@@ -134,7 +135,6 @@ impl VarReadable for usize {
 }
 
 impl Readable for String {
-    #[inline]
     fn read_from(reader: &mut impl Read) -> Result<Self, ReadError> {
         read_string(reader, MAX_STRING_LENGTH)
     }
@@ -142,7 +142,6 @@ impl Readable for String {
 
 #[cfg(feature = "uuid")]
 impl Readable for Uuid {
-    #[inline]
     fn read_from(reader: &mut impl Read) -> Result<Self, ReadError> {
         Ok(Uuid::from_u128(u128::read_from(reader)?))
     }

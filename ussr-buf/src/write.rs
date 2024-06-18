@@ -12,7 +12,6 @@ macro_rules! impl_writable {
         paste! {
             $(
                 impl Writable for $type {
-                    #[inline]
                     fn write_to(&self, writer: &mut impl Write) -> io::Result<()> {
                         writer.[<write_ $type>](*self)
                     }
@@ -56,7 +55,6 @@ where
 }
 
 impl Writable for bool {
-    #[inline]
     fn write_to(&self, writer: &mut impl Write) -> io::Result<()> {
         writer.write_u8(*self as u8)
     }
@@ -79,7 +77,6 @@ impl VarWritable for u32 {
 }
 
 impl VarWritable for i32 {
-    #[inline]
     fn write_var_to(&self, writer: &mut impl Write) -> io::Result<()> {
         u32::write_var_to(&(*self as u32), writer)
     }
@@ -102,7 +99,6 @@ impl VarWritable for u64 {
 }
 
 impl VarWritable for i64 {
-    #[inline]
     fn write_var_to(&self, writer: &mut impl Write) -> io::Result<()> {
         u64::write_var_to(&(*self as u64), writer)
     }
@@ -125,7 +121,6 @@ impl VarWritable for usize {
 }
 
 impl Writable for String {
-    #[inline]
     fn write_to(&self, writer: &mut impl Write) -> io::Result<()> {
         u32::write_var_to(&(self.len() as u32), writer)?;
         writer.write_all(self.as_bytes())
@@ -133,14 +128,12 @@ impl Writable for String {
 }
 
 impl<T: Writable> Writable for &T {
-    #[inline]
     fn write_to(&self, writer: &mut impl Write) -> io::Result<()> {
         (*self).write_to(writer)
     }
 }
 
 impl<T: Writable> Writable for &[T] {
-    #[inline]
     fn write_to(&self, writer: &mut impl Write) -> io::Result<()> {
         self.len().write_var_to(writer)?;
         for item in self.iter() {
@@ -151,7 +144,6 @@ impl<T: Writable> Writable for &[T] {
 }
 
 impl<T: Writable> Writable for Vec<T> {
-    #[inline]
     fn write_to(&self, writer: &mut impl Write) -> io::Result<()> {
         self.as_slice().write_to(writer)
     }
@@ -159,7 +151,6 @@ impl<T: Writable> Writable for Vec<T> {
 
 #[cfg(feature = "uuid")]
 impl Writable for Uuid {
-    #[inline]
     fn write_to(&self, writer: &mut impl Write) -> io::Result<()> {
         writer.write_u128(self.as_u128())
     }

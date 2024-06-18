@@ -3,10 +3,7 @@ pub mod read;
 pub mod size;
 pub mod write;
 
-use std::{
-    io::{self, Read, Write},
-    string::FromUtf8Error,
-};
+use std::io::{self, Read, Write};
 
 use thiserror::Error;
 
@@ -25,10 +22,10 @@ pub enum ReadError {
     InvalidVarLong,
 
     #[error("Invalid UTF-8")]
-    InvalidUtf8(#[from] FromUtf8Error),
+    InvalidUtf8,
 
-    #[error("Invalid string length: max {max}, got {actual}")]
-    InvalidStringLength { max: usize, actual: usize },
+    #[error("Invalid string length")]
+    InvalidStringLength,
 
     #[error("Invalid enum variant")]
     InvalidEnumVariant,
