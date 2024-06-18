@@ -1,6 +1,5 @@
 use std::fmt;
 
-use cfg_if::cfg_if;
 use chrono::Local;
 use nu_ansi_term::Color::{Blue, DarkGray, Green, Purple, Red, White, Yellow};
 use tracing::{Level, Metadata};
@@ -15,15 +14,8 @@ use tracing_subscriber::{
 };
 
 pub fn init() {
-    cfg_if! {
-        if #[cfg(feature = "bench")] {
-            let filter = EnvFilter::builder().with_default_directive(Level::INFO.into());
-        } else {
-            let filter = EnvFilter::builder().with_default_directive(Level::TRACE.into());
-        }
-    }
-
-    let filter: EnvFilter = filter
+    let filter: EnvFilter = EnvFilter::builder()
+        .with_default_directive(Level::TRACE.into())
         .from_env()
         .expect("Failed to parse env trace filter")
         .add_directive("bevy=off".parse().unwrap());
