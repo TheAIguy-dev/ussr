@@ -1,6 +1,6 @@
 # usrs-nbt
 
-A moderatly fast NBT library for USSR.
+A moderatly fast and versatile NBT library for USSR.
 
 ## Notes
 
