@@ -1,11 +1,12 @@
 use core::fmt;
 use std::io::{self, Write};
 
+use byteorder::{WriteBytesExt, BE};
 use paste::paste;
 #[cfg(feature = "uuid")]
 use uuid::Uuid;
 
-use crate::{VarWritable, Writable, WriteExt};
+use crate::{VarWritable, Writable};
 
 macro_rules! impl_writable {
     ($($type:ty),*) => {
@@ -13,7 +14,7 @@ macro_rules! impl_writable {
             $(
                 impl Writable for $type {
                     fn write_to(&self, writer: &mut impl Write) -> io::Result<()> {
-                        writer.[<write_ $type>](*self)
+                        writer.write_all(&self.to_be_bytes())
                     }
                 }
             )*
@@ -152,6 +153,6 @@ impl<T: Writable> Writable for Vec<T> {
 #[cfg(feature = "uuid")]
 impl Writable for Uuid {
     fn write_to(&self, writer: &mut impl Write) -> io::Result<()> {
-        writer.write_u128(self.as_u128())
+        writer.write_u128::<BE>(self.as_u128())
     }
 }

@@ -11,6 +11,7 @@ pub mod serverbound {
         const ID = 0x00,
         const DIRECTION = Serverbound,
         const STATE = Login,
+        const CAN_CHANGE_STATE = false,
         const MIN_SIZE = String::MIN_SIZE,
         const MAX_SIZE = String::MAX_SIZE,
     }
@@ -24,6 +25,7 @@ pub mod serverbound {
         const ID = 0x01,
         const DIRECTION = Serverbound,
         const STATE = Login,
+        const CAN_CHANGE_STATE = false,
         const MIN_SIZE = (u16::SIZE + u16::MIN as usize * u8::SIZE) * 2,
         const MAX_SIZE = (u16::SIZE + u16::MAX as usize * u8::SIZE) * 2,
     }
@@ -41,6 +43,7 @@ pub mod clientbound {
         const ID = 0x00,
         const DIRECTION = Clientbound,
         const STATE = Login,
+        const CAN_CHANGE_STATE = false,
         const MIN_SIZE = String::MIN_SIZE,
         const MAX_SIZE = String::MAX_SIZE,
     }
@@ -55,6 +58,7 @@ pub mod clientbound {
         const ID = 0x01,
         const DIRECTION = Clientbound,
         const STATE = Login,
+        const CAN_CHANGE_STATE = false,
         const MIN_SIZE = String::MIN_SIZE + (u16::SIZE + u16::MIN as usize * u8::SIZE) * 2,
         const MAX_SIZE = String::MAX_SIZE + (u16::SIZE + u16::MAX as usize * u8::SIZE) * 2,
     }
@@ -68,6 +72,7 @@ pub mod clientbound {
         const ID = 0x02,
         const DIRECTION = Clientbound,
         const STATE = Login,
+        const CAN_CHANGE_STATE = false,
         const MIN_SIZE = Uuid::SIZE + String::MIN_SIZE,
         const MAX_SIZE = Uuid::SIZE + String::MAX_SIZE,
     }

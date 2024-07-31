@@ -8,12 +8,11 @@ use ussr_buf::ReadError;
 use proto::enums::State;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PacketDirection {
+pub enum Direction {
     Serverbound,
     Clientbound,
 }
 
-//? Maybe I don't need to implement Error.
 #[derive(Debug, Error)]
 pub enum PacketReadError {
     #[error(transparent)]
@@ -25,6 +24,7 @@ pub enum PacketReadError {
     #[error("Couldn't parse packet: {0}")]
     Parse(ReadError),
 }
+
 impl From<ReadError> for PacketReadError {
     fn from(e: ReadError) -> Self {
         match e {
@@ -38,9 +38,8 @@ pub trait Packet: Sized {
     /// The packet id.
     const ID: u32;
 
-    //? Maybe this is unnecessary.
     /// The packet direction.
-    const DIRECTION: PacketDirection;
+    const DIRECTION: Direction;
 
     /// The connection state in which this packet is received/sent.
     const STATE: State;
@@ -55,9 +54,8 @@ pub trait Packet: Sized {
     const MAX_SIZE: usize;
 
     /// Reads the packet from the given reader.
-    fn read(reader: &mut impl Read) -> Result<Self, PacketReadError>;
+    fn read_from(reader: &mut impl Read) -> Result<Self, PacketReadError>;
 
     /// Writes the packet to the given writer.
-    /// Note that this still performs validation, and will panic if the packet is invalid.
-    fn write(&self, writer: &mut impl Write) -> io::Result<()>;
+    fn write_to(&self, writer: &mut impl Write) -> io::Result<()>;
 }

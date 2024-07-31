@@ -15,6 +15,7 @@ use ussr_protocol::{proto::enums::State, Packet};
 use process_data::process_data;
 
 pub struct UssrNetPlugin;
+
 impl Plugin for UssrNetPlugin {
     fn build(&self, app: &mut bevy_app::App) {
         app.insert_resource(Server::new()).add_systems(
@@ -23,6 +24,8 @@ impl Plugin for UssrNetPlugin {
         );
     }
 }
+
+// TODO: Do IO stuff in tasks
 
 /// The size of the read buffer.
 const READ_BUFFER_SIZE: usize = 1024;
@@ -33,6 +36,7 @@ const READ_BUFFER_SIZE: usize = 1024;
 struct Server {
     listener: TcpListener,
 }
+
 impl Server {
     fn new() -> Self {
         let listener: TcpListener =
@@ -46,7 +50,6 @@ impl Server {
 
 /// A single connection to the server.
 /// This component is added automatically by [`accept_connections`].
-// TODO: Add timeout
 #[derive(Component)]
 struct Connection {
     stream: TcpStream,
@@ -54,6 +57,7 @@ struct Connection {
     incoming_buf: BytesMut, //? Maybe it should be a vector of frames
     outgoing_buf: Vec<u8>,
 }
+
 impl Connection {
     /// Create a new connection.
     /// The stream will be made non-blocking, see [`TcpStream::set_nonblocking`].
@@ -116,7 +120,7 @@ fn read_data(mut commands: Commands, mut query: Query<(Entity, &mut Connection)>
 pub fn serialize_packet<T: Packet>(packet: T) -> Vec<u8> {
     let mut buf: Vec<u8> = vec![];
     T::ID.write_var_to(&mut buf).unwrap();
-    packet.write(&mut buf).unwrap();
+    packet.write_to(&mut buf).unwrap();
     let len: usize = buf.len();
     len.write_var_to(&mut buf).unwrap();
     let new_len: usize = buf.len();

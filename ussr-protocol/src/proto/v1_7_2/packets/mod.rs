@@ -12,9 +12,8 @@ use ussr_protocol_macros::packet;
 use uuid::Uuid;
 
 use crate::{
-    Packet,
-    PacketDirection::{self, *},
-    PacketReadError,
+    Direction::{self, *},
+    Packet, PacketReadError,
 };
 // Using the latest enabled state
 use crate::proto::enums::State::{self, *};

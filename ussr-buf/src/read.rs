@@ -1,10 +1,12 @@
 use std::io::Read;
 
+use byteorder::{ReadBytesExt, BE};
 use paste::paste;
+use ussr_nbt::owned::Nbt;
 #[cfg(feature = "uuid")]
 use uuid::Uuid;
 
-use crate::{size::MAX_STRING_LENGTH, ReadError, ReadExt, Readable, VarReadable};
+use crate::{size::MAX_STRING_LENGTH, ReadError, Readable, VarReadable};
 
 macro_rules! impl_readable {
     ($($type:ty),*) => {
@@ -12,29 +14,26 @@ macro_rules! impl_readable {
             $(
                 impl Readable for $type {
                     fn read_from(reader: &mut impl Read) -> Result<Self, ReadError> {
-                        Ok(reader.[<read_ $type>]()?)
+                        Ok(reader.[<read_ $type>]::<BE>()?)
                     }
                 }
             )*
         }
     };
 }
-impl_readable!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64);
+impl_readable!(u16, u32, u64, u128, i16, i32, i64, i128, f32, f64);
 
 /// Reads a string from the reader, with a maximum length `max_length`.
 ///
 /// `max_length` is in characters, not bytes.
-
 pub fn read_string(reader: &mut impl Read, max_length: usize) -> Result<String, ReadError> {
     let length: usize = usize::read_var_from(reader)?;
 
     if length > max_length * 3 {
-        return Err(
-            ReadError::InvalidStringLength, // {
-                                            // max: max_length * 3,
-                                            // actual: length,
-                                            // }
-        );
+        return Err(ReadError::InvalidStringLength {
+            max: max_length * 3,
+            actual: length,
+        });
     }
 
     let mut bytes: Vec<u8> = vec![0; length];
@@ -44,7 +43,6 @@ pub fn read_string(reader: &mut impl Read, max_length: usize) -> Result<String, 
 }
 
 /// Read an array from the reader, prefixed with its length as a fixed-size readable type `L`.
-
 pub fn read_array<L, T>(reader: &mut impl Read) -> Result<Vec<T>, ReadError>
 where
     L: Readable + Into<usize>,
@@ -59,7 +57,6 @@ where
 }
 
 /// Read an array from the reader, prefixed with its length as a variable-sized readable type `L`.
-
 pub fn read_var_array<L, T>(reader: &mut impl Read) -> Result<Vec<T>, ReadError>
 where
     L: VarReadable + Into<usize>,
@@ -71,6 +68,18 @@ where
         array.push(T::read_var_from(reader)?);
     }
     Ok(array)
+}
+
+impl Readable for u8 {
+    fn read_from(reader: &mut impl Read) -> Result<Self, ReadError> {
+        Ok(reader.read_u8()?)
+    }
+}
+
+impl Readable for i8 {
+    fn read_from(reader: &mut impl Read) -> Result<Self, ReadError> {
+        Ok(reader.read_i8()?)
+    }
 }
 
 impl Readable for bool {
@@ -140,9 +149,15 @@ impl Readable for String {
     }
 }
 
+impl Readable for Nbt {
+    fn read_from(reader: &mut impl Read) -> Result<Self, ReadError> {
+        Ok(Nbt::read(reader)?)
+    }
+}
+
 #[cfg(feature = "uuid")]
 impl Readable for Uuid {
     fn read_from(reader: &mut impl Read) -> Result<Self, ReadError> {
-        Ok(Uuid::from_u128(u128::read_from(reader)?))
+        Ok(Uuid::from_u128(reader.read_u128::<BE>()?))
     }
 }

@@ -122,7 +122,7 @@ fn parse_packet(
         State::Handshaking => match packet_id {
             Handshake::ID => {
                 trace!("Reading handshake");
-                let p: Handshake = Handshake::read(reader)?;
+                let p: Handshake = Handshake::read_from(reader)?;
                 let next_state: NextState = p.next_state;
                 connection.state = next_state.into();
             }
@@ -136,7 +136,7 @@ fn parse_packet(
         State::Status => match packet_id {
             StatusRequest::ID => {
                 trace!("Reading status request");
-                let p = StatusRequest::read(reader)?;
+                let p = StatusRequest::read_from(reader)?;
                 let buf: Vec<u8> = serialize_packet(StatusResponse {
                     response: r#"{"version":{"name":"1.7.2","protocol":4},"players":{"max":100,"online":0,"sample":[]},"description":{"text":"Hello, world!"}}"#.to_string(),
                 });
@@ -144,7 +144,7 @@ fn parse_packet(
             }
             PingRequest::ID => {
                 trace!("Reading ping request");
-                let p = PingRequest::read(reader)?;
+                let p = PingRequest::read_from(reader)?;
                 let buf: Vec<u8> = serialize_packet(PingResponse { payload: p.payload });
                 connection.outgoing_buf.extend_from_slice(&buf);
             }
@@ -158,7 +158,7 @@ fn parse_packet(
         State::Login => match packet_id {
             LoginStart::ID => {
                 trace!("Reading login start");
-                let p = LoginStart::read(reader)?;
+                let p = LoginStart::read_from(reader)?;
                 let buf: Vec<u8> = serialize_packet(Disconnect {
                     reason: format!(
                         r#"{{"text": "Fuck off, {}","color": "red","bold": true}}"#,
@@ -169,7 +169,7 @@ fn parse_packet(
             }
             EncryptionResponse::ID => {
                 trace!("Reading encryption response");
-                let p = EncryptionResponse::read(reader)?;
+                let p = EncryptionResponse::read_from(reader)?;
             }
             _ => {
                 return Err(PacketReadError::UnknownPacketId {

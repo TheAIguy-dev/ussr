@@ -1,4 +1,3 @@
-mod io_ext;
 pub mod read;
 pub mod size;
 pub mod write;
@@ -6,10 +5,8 @@ pub mod write;
 use std::io::{self, Read, Write};
 
 use thiserror::Error;
+use ussr_nbt::NbtReadError;
 
-pub use io_ext::*;
-
-//? Maybe I don't need to implement Error.
 #[derive(Debug, Error)]
 pub enum ReadError {
     #[error(transparent)]
@@ -25,22 +22,31 @@ pub enum ReadError {
     InvalidUtf8,
 
     #[error("Invalid string length")]
-    InvalidStringLength,
+    InvalidStringLength { max: usize, actual: usize },
 
     #[error("Invalid enum variant")]
     InvalidEnumVariant,
-    // #[error("{0}")]
-    // Other(&'static str),
 
-    // #[error("Connection closed")]
-    // ConnectionClosed,
+    #[error(transparent)]
+    Nbt(NbtReadError),
 }
 
+impl From<NbtReadError> for ReadError {
+    fn from(e: NbtReadError) -> Self {
+        match e {
+            NbtReadError::Io(e) => Self::Io(e),
+            e => Self::Nbt(e),
+        }
+    }
+}
+
+/// NOTE: This trait will likely be removed.
 /// A trait for getting the size of a type in bytes when serialized.
 pub trait Size {
     const SIZE: usize;
 }
 
+/// NOTE: This trait will likely be removed.
 /// A trait for getting the size of a variable-length type in bytes when serialized.
 pub trait VarSize {
     const MIN_SIZE: usize;

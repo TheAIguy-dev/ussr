@@ -33,6 +33,7 @@ macro_rules! write_colored {
 }
 
 pub struct UssrFormatter;
+
 impl<S, N> FormatEvent<S, N> for UssrFormatter
 where
     S: Subscriber + for<'a> LookupSpan<'a>,

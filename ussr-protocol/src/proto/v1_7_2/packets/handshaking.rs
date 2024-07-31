@@ -15,9 +15,9 @@ pub mod serverbound {
         const ID = 0x00,
         const DIRECTION = Serverbound,
         const STATE = Handshaking,
+        const CAN_CHANGE_STATE = true,
         const MIN_SIZE = i32::MIN_SIZE + String::MIN_SIZE + u16::SIZE + enums::NextState::SIZE,
         const MAX_SIZE = i32::MAX_SIZE + String::MAX_SIZE + u16::SIZE + enums::NextState::SIZE,
-        const CAN_CHANGE_STATE = true,
     }
 }
 

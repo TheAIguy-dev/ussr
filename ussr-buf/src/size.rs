@@ -1,3 +1,5 @@
+//! Will likely be removed
+
 #[cfg(feature = "uuid")]
 use uuid::Uuid;
 
@@ -23,6 +25,7 @@ impl VarSize for u32 {
     const MIN_SIZE: usize = 1;
     const MAX_SIZE: usize = 5;
 }
+
 impl VarSize for i32 {
     const MIN_SIZE: usize = 1;
     const MAX_SIZE: usize = 5;
@@ -32,6 +35,7 @@ impl VarSize for u64 {
     const MIN_SIZE: usize = 1;
     const MAX_SIZE: usize = 10;
 }
+
 impl VarSize for i64 {
     const MIN_SIZE: usize = 1;
     const MAX_SIZE: usize = 10;

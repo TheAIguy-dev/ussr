@@ -9,6 +9,7 @@ pub mod serverbound {
         const ID = 0x00,
         const DIRECTION = Serverbound,
         const STATE = Status,
+        const CAN_CHANGE_STATE = false,
         const MIN_SIZE = 0,
         const MAX_SIZE = 0,
     }
@@ -21,6 +22,7 @@ pub mod serverbound {
         const ID = 0x01,
         const DIRECTION = Serverbound,
         const STATE = Status,
+        const CAN_CHANGE_STATE = false,
         const MIN_SIZE = u64::SIZE,
         const MAX_SIZE = u64::SIZE,
     }
@@ -38,6 +40,7 @@ pub mod clientbound {
         const ID = 0x00,
         const DIRECTION = Clientbound,
         const STATE = Status,
+        const CAN_CHANGE_STATE = false,
         const MIN_SIZE = u64::SIZE,
         const MAX_SIZE = u64::SIZE,
     }
@@ -50,6 +53,7 @@ pub mod clientbound {
         const ID = 0x01,
         const DIRECTION = Clientbound,
         const STATE = Status,
+        const CAN_CHANGE_STATE = false,
         const MIN_SIZE = u64::SIZE,
         const MAX_SIZE = u64::SIZE,
     }
