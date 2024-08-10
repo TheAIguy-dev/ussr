@@ -1,10 +1,14 @@
 [package]
 name = "ussr-nbt"
 version = "0.1.0"
+authors = ["TheAIguy_"]
 edition = "2021"
+description = "A very fast fast and versatile NBT library for Minecraft: Java Edition."
+repository = "https://github.com/TheAIguy-dev/ussr"
+license = "MIT"
 
 [dependencies]
-bytemuck = { version = "1.16.1", features = ["extern_crate_alloc"] }
+bytemuck = { version = "1.16.3", features = ["extern_crate_alloc"] }
 byteorder = "1.5.0"
 flate2 = "1.0.30"
 paste = "1.0.15"
