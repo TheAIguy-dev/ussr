@@ -231,7 +231,7 @@ fn bench_read_file(filename: &str, c: &mut Criterion) {
     let nbt = golden_apple::nbt::from_reader(&mut Cursor::new(&input)).unwrap();
     group.bench_function("golden_apple", |b| {
         b.iter(|| {
-            black_box(golden_apple::nbt::to_bytes(nbt).unwrap());
+            black_box(golden_apple::nbt::to_bytes(nbt.clone()).unwrap());
         })
     });
 
