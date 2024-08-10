@@ -40,6 +40,30 @@ For more examples see the `examples` directory.
 -   SNBT formatting in `Debug`/`Display`.
 -   Perhaps iterators for `RawVec` and `RawSlice`, although converting in bulk is more efficient.
 
+## Performance comparison
+
+Deserialization:
+
+1. [`simdnbt::borrow`](https://crates.io/crates/simdnbt)
+2. `ussr-nbt::borrow`
+3. [`simdnbt::owned`](https://crates.io/crates/simdnbt)
+4. `ussr-nbt::owned`
+5. [`shen-nbt5`](https://crates.io/crates/shen-nbt5)
+6. [`azalea-nbt`](https://crates.io/crates/azalea-nbt)
+7. [`graphite_binary`](https://crates.io/crates/graphite_binary)
+
+Serialization:
+
+1. [`simdnbt::owned`](https://crates.io/crates/simdnbt)
+2. [`azalea-nbt`](https://crates.io/crates/azalea-nbt)
+3. `ussr-nbt::borrow`
+4. `ussr-nbt::owned`\*
+5. [`simdnbt::borrow`](https://crates.io/crates/simdnbt)\*
+6. [`graphite_binary`](https://crates.io/crates/graphite_binary)
+7. [`shen-nbt5`](https://crates.io/crates/shen-nbt5)
+
+\*Note: numbers 4 and 5 are very close.
+
 ## Cargo features
 
 For swapping endianness in bulk this library uses SIMD instructions. By default, it will detect CPU features and use the fastest available instruction set. However, by disabling the `rt-cpu-feat` feature, it will use the fallback implementation, which is actually the most performant implementation if compiled with `-C target-cpu=native`. Note that this flag will make the resulting binary not be able to run on CPUs other than the one it was compiled on.

@@ -8,7 +8,7 @@ use std::{
 use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
 use flate2::read::GzDecoder;
 
-fn bench_read_file(filename: &str, c: &mut Criterion) {
+fn bench_file(filename: &str, c: &mut Criterion) {
     let contents: Vec<u8> = std::fs::read(format!("tests/{filename}")).unwrap();
     let mut src: &[u8] = &contents[..];
 
@@ -67,43 +67,46 @@ fn bench_read_file(filename: &str, c: &mut Criterion) {
             black_box(graphite_binary::nbt::decode::read(&mut &input[..]).unwrap());
         })
     });
-    group.bench_function("valence", |b| {
-        b.iter(|| {
-            black_box(valence_nbt::from_binary::<String>(&mut &input[..]).unwrap());
-        })
-    });
-    group.bench_function("fastnbt", |b| {
-        b.iter(|| {
-            black_box(fastnbt::from_bytes::<fastnbt::Value>(&input).unwrap());
-        })
-    });
-    group.bench_function("hematite", |b| {
-        b.iter(|| {
-            black_box(nbt::Blob::from_reader(&mut input_stream).unwrap());
-            input_stream.set_position(0);
-        })
-    });
-    group.bench_function("crab", |b| {
-        b.iter(|| {
-            black_box(crab_nbt::Nbt::read(&mut input_stream).unwrap());
-            input_stream.set_position(0);
-        })
-    });
-    group.bench_function("quartz", |b| {
-        b.iter(|| {
-            black_box(
-                quartz_nbt::io::read_nbt(&mut input_stream, quartz_nbt::io::Flavor::Uncompressed)
-                    .unwrap(),
-            );
-            input_stream.set_position(0);
-        })
-    });
-    group.bench_function("golden_apple", |b| {
-        b.iter(|| {
-            black_box(golden_apple::nbt::from_reader(&mut input_stream).unwrap());
-            input_stream.set_position(0);
-        })
-    });
+    // Removed because too slow and messing up my chart
+    // group.bench_function("valence", |b| {
+    //     b.iter(|| {
+    //         black_box(valence_nbt::from_binary::<String>(&mut &input[..]).unwrap());
+    //     })
+    // });
+    // group.bench_function("fastnbt", |b| {
+    //     b.iter(|| {
+    //         black_box(fastnbt::from_bytes::<fastnbt::Value>(&input).unwrap());
+    //     })
+    // });
+    // group.bench_function("hematite", |b| {
+    //     b.iter(|| {
+    //         black_box(nbt::Blob::from_reader(&mut input_stream).unwrap());
+    //         input_stream.set_position(0);
+    //     })
+    // });
+    // group.bench_function("crab", |b| {
+    //     b.iter(|| {
+    //         black_box(crab_nbt::Nbt::read(&mut input_stream).unwrap());
+    //         input_stream.set_position(0);
+    //     })
+    // });
+    // group.bench_function("quartz", |b| {
+    //     b.iter(|| {
+    //         black_box(
+    //             quartz_nbt::io::read_nbt(&mut input_stream, quartz_nbt::io::Flavor::Uncompressed)
+    //                 .unwrap(),
+    //         );
+    //         input_stream.set_position(0);
+    //     })
+    // });
+
+    // Removed because it's not working correctly ¯\_(ツ)_/¯
+    // group.bench_function("golden_apple", |b| {
+    //     b.iter(|| {
+    //         black_box(golden_apple::nbt::from_reader(&mut input_stream).unwrap());
+    //         input_stream.set_position(0);
+    //     })
+    // });
 
     group.finish();
 
@@ -175,65 +178,71 @@ fn bench_read_file(filename: &str, c: &mut Criterion) {
         })
     });
 
-    let nbt = valence_nbt::from_binary::<String>(&mut &input[..]).unwrap();
-    group.bench_function("valence", |b| {
-        b.iter(|| {
-            let mut out: Vec<u8> = Vec::new();
-            valence_nbt::to_binary(&nbt.0, &mut out, &nbt.1).unwrap();
-            black_box(out);
-        })
-    });
+    // Removed because too slow and messing up my chart
+    // let nbt = valence_nbt::from_binary::<String>(&mut &input[..]).unwrap();
+    // group.bench_function("valence", |b| {
+    //     b.iter(|| {
+    //         let mut out: Vec<u8> = Vec::new();
+    //         valence_nbt::to_binary(&nbt.0, &mut out, &nbt.1).unwrap();
+    //         black_box(out);
+    //     })
+    // });
 
-    let nbt = fastnbt::from_bytes::<fastnbt::Value>(&input).unwrap();
-    group.bench_function("fastnbt", |b| {
-        b.iter(|| {
-            let mut out: Vec<u8> = Vec::new();
-            fastnbt::to_writer(&mut out, &nbt).unwrap();
-            black_box(out);
-        })
-    });
+    // Removed because too slow and messing up my chart
+    // let nbt = fastnbt::from_bytes::<fastnbt::Value>(&input).unwrap();
+    // group.bench_function("fastnbt", |b| {
+    //     b.iter(|| {
+    //         let mut out: Vec<u8> = Vec::new();
+    //         fastnbt::to_writer(&mut out, &nbt).unwrap();
+    //         black_box(out);
+    //     })
+    // });
 
-    let nbt = nbt::Blob::from_reader(&mut Cursor::new(&input)).unwrap();
-    group.bench_function("hematite", |b| {
-        b.iter(|| {
-            let mut out: Vec<u8> = Vec::new();
-            nbt.to_writer(&mut out).unwrap();
-            black_box(out);
-        })
-    });
+    // Removed because too slow and messing up my chart
+    // let nbt = nbt::Blob::from_reader(&mut Cursor::new(&input)).unwrap();
+    // group.bench_function("hematite", |b| {
+    //     b.iter(|| {
+    //         let mut out: Vec<u8> = Vec::new();
+    //         nbt.to_writer(&mut out).unwrap();
+    //         black_box(out);
+    //     })
+    // });
 
-    let nbt = crab_nbt::Nbt::read(&mut Cursor::new(&input)).unwrap();
-    group.bench_function("crab", |b| {
-        b.iter(|| {
-            black_box(nbt.write());
-        })
-    });
+    // Removed because too slow and messing up my chart
+    // let nbt = crab_nbt::Nbt::read(&mut Cursor::new(&input)).unwrap();
+    // group.bench_function("crab", |b| {
+    //     b.iter(|| {
+    //         black_box(nbt.write());
+    //     })
+    // });
 
-    let nbt = quartz_nbt::io::read_nbt(
-        &mut Cursor::new(&input),
-        quartz_nbt::io::Flavor::Uncompressed,
-    )
-    .unwrap();
-    group.bench_function("quartz", |b| {
-        b.iter(|| {
-            let mut out: Vec<u8> = Vec::new();
-            quartz_nbt::io::write_nbt(
-                &mut out,
-                Some(&nbt.1),
-                &nbt.0,
-                quartz_nbt::io::Flavor::Uncompressed,
-            )
-            .unwrap();
-            black_box(out);
-        })
-    });
+    // Removed because too slow and messing up my chart
+    // let nbt = quartz_nbt::io::read_nbt(
+    //     &mut Cursor::new(&input),
+    //     quartz_nbt::io::Flavor::Uncompressed,
+    // )
+    // .unwrap();
+    // group.bench_function("quartz", |b| {
+    //     b.iter(|| {
+    //         let mut out: Vec<u8> = Vec::new();
+    //         quartz_nbt::io::write_nbt(
+    //             &mut out,
+    //             Some(&nbt.1),
+    //             &nbt.0,
+    //             quartz_nbt::io::Flavor::Uncompressed,
+    //         )
+    //         .unwrap();
+    //         black_box(out);
+    //     })
+    // });
 
-    let nbt = golden_apple::nbt::from_reader(&mut Cursor::new(&input)).unwrap();
-    group.bench_function("golden_apple", |b| {
-        b.iter(|| {
-            black_box(golden_apple::nbt::to_bytes(nbt.clone()).unwrap());
-        })
-    });
+    // Removed because it's not working correctly ¯\_(ツ)_/¯
+    // let nbt = golden_apple::nbt::from_reader(&mut Cursor::new(&input)).unwrap();
+    // group.bench_function("golden_apple", |b| {
+    //     b.iter(|| {
+    //         black_box(golden_apple::nbt::to_bytes(nbt.clone()).unwrap());
+    //     })
+    // });
 
     group.finish();
 }
@@ -242,15 +251,15 @@ fn bench_read_file(filename: &str, c: &mut Criterion) {
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 fn bench(c: &mut Criterion) {
-    bench_read_file("TheAIguy_.nbt", c);
+    bench_file("TheAIguy_.nbt", c);
 }
 
 criterion_group! {
     name = compare;
     config = Criterion::default()
                 .warm_up_time(Duration::from_secs(5))
-                .measurement_time(Duration::from_secs(15))
-                .sample_size(1_000);
+                // .measurement_time(Duration::from_secs(60))
+                .sample_size(100);
     targets = bench
 }
 // criterion_group!(compare, bench);
