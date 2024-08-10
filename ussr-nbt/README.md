@@ -67,7 +67,3 @@ Serialization:
 ## Cargo features
 
 For swapping endianness in bulk this library uses SIMD instructions. By default, it will detect CPU features and use the fastest available instruction set. However, by disabling the `rt-cpu-feat` feature, it will use the fallback implementation, which is actually the most performant implementation if compiled with `-C target-cpu=native`. Note that this flag will make the resulting binary not be able to run on CPUs other than the one it was compiled on.
-
-## License
-
-MIT License
