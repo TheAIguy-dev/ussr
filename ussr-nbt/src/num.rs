@@ -1,3 +1,5 @@
+//! A trait for swapping the endianness of a number.
+
 use bytemuck::Pod;
 
 mod private {

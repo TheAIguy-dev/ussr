@@ -1,3 +1,5 @@
+//! Support for modified UTF-8 encoding of strings.
+
 mod impls;
 
 use std::borrow::Cow;
