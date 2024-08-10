@@ -1,6 +1,6 @@
 [package]
 name = "ussr-nbt"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["TheAIguy_"]
 edition = "2021"
 description = "A very fast fast and versatile NBT library for Minecraft: Java Edition."
@@ -30,7 +30,7 @@ hematite-nbt = { version = "0.5.2", default-features = false }
 quartz_nbt = "0.2.9"
 shen-nbt5 = "0.4.6"
 simdnbt = "0.6.0"
-# ussr-nbt = { version = "0.1.1", default-features = false }
+# ussr-nbt = { version = "0.1.2", default-features = false }
 valence_nbt = { version = "0.8.0", features = ["binary"] }
 
 [features]

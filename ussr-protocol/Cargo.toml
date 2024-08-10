@@ -11,7 +11,7 @@ strum_macros = "0.26.4"
 thiserror = "1.0.61"
 tracing = "0.1.40"
 ussr-buf = { version = "0.1.0", path = "../ussr-buf" }
-ussr-nbt = { version = "0.1.1", path = "../ussr-nbt" }
+ussr-nbt = { version = "0.1.2", path = "../ussr-nbt" }
 ussr-protocol-macros = { version = "0.1.0", path = "ussr-protocol-macros" }
 uuid = "1.8.0"
 

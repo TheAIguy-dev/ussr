@@ -52,6 +52,8 @@ Deserialization:
 6. [`azalea-nbt`](https://crates.io/crates/azalea-nbt)
 7. [`graphite_binary`](https://crates.io/crates/graphite_binary)
 
+![Serialization benchmarks violin plot](ser.png)
+
 Serialization:
 
 1. [`simdnbt::owned`](https://crates.io/crates/simdnbt)
@@ -63,6 +65,10 @@ Serialization:
 7. [`shen-nbt5`](https://crates.io/crates/shen-nbt5)
 
 \*Note: numbers 4 and 5 are very close.
+
+![Deserialization benchmarks violin plot](de.png)
+
+Plots are generated using [`criterion`](https://crates.io/crates/criterion).
 
 ## Cargo features
 

@@ -67,7 +67,7 @@ fn bench_file(filename: &str, c: &mut Criterion) {
             black_box(graphite_binary::nbt::decode::read(&mut &input[..]).unwrap());
         })
     });
-    // Removed because too slow and messing up my chart
+    // Removed because too slow and messing up my plot
     // group.bench_function("valence", |b| {
     //     b.iter(|| {
     //         black_box(valence_nbt::from_binary::<String>(&mut &input[..]).unwrap());
@@ -178,7 +178,7 @@ fn bench_file(filename: &str, c: &mut Criterion) {
         })
     });
 
-    // Removed because too slow and messing up my chart
+    // Removed because too slow and messing up my plot
     // let nbt = valence_nbt::from_binary::<String>(&mut &input[..]).unwrap();
     // group.bench_function("valence", |b| {
     //     b.iter(|| {
@@ -188,7 +188,7 @@ fn bench_file(filename: &str, c: &mut Criterion) {
     //     })
     // });
 
-    // Removed because too slow and messing up my chart
+    // Removed because too slow and messing up my plot
     // let nbt = fastnbt::from_bytes::<fastnbt::Value>(&input).unwrap();
     // group.bench_function("fastnbt", |b| {
     //     b.iter(|| {
@@ -198,7 +198,7 @@ fn bench_file(filename: &str, c: &mut Criterion) {
     //     })
     // });
 
-    // Removed because too slow and messing up my chart
+    // Removed because too slow and messing up my plot
     // let nbt = nbt::Blob::from_reader(&mut Cursor::new(&input)).unwrap();
     // group.bench_function("hematite", |b| {
     //     b.iter(|| {
@@ -208,7 +208,7 @@ fn bench_file(filename: &str, c: &mut Criterion) {
     //     })
     // });
 
-    // Removed because too slow and messing up my chart
+    // Removed because too slow and messing up my plot
     // let nbt = crab_nbt::Nbt::read(&mut Cursor::new(&input)).unwrap();
     // group.bench_function("crab", |b| {
     //     b.iter(|| {
@@ -216,7 +216,7 @@ fn bench_file(filename: &str, c: &mut Criterion) {
     //     })
     // });
 
-    // Removed because too slow and messing up my chart
+    // Removed because too slow and messing up my plot
     // let nbt = quartz_nbt::io::read_nbt(
     //     &mut Cursor::new(&input),
     //     quartz_nbt::io::Flavor::Uncompressed,
