@@ -27,7 +27,7 @@ pub enum ReadError {
     #[error("Invalid enum variant")]
     InvalidEnumVariant,
 
-    #[error(transparent)]
+    #[error("Error reading NBT: {0}")]
     Nbt(NbtReadError),
 }
 
@@ -40,14 +40,16 @@ impl From<NbtReadError> for ReadError {
     }
 }
 
-/// NOTE: This trait will likely be removed.
 /// A trait for getting the size of a type in bytes when serialized.
+///
+/// NOTE: This trait will likely be removed.
 pub trait Size {
     const SIZE: usize;
 }
 
-/// NOTE: This trait will likely be removed.
 /// A trait for getting the size of a variable-length type in bytes when serialized.
+///
+/// NOTE: This trait will likely be removed.
 pub trait VarSize {
     const MIN_SIZE: usize;
     const MAX_SIZE: usize;

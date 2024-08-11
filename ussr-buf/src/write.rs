@@ -3,7 +3,7 @@ use std::io::{self, Write};
 
 use byteorder::{WriteBytesExt, BE};
 use paste::paste;
-#[cfg(feature = "uuid")]
+use ussr_nbt::owned::Nbt;
 use uuid::Uuid;
 
 use crate::{VarWritable, Writable};
@@ -150,7 +150,12 @@ impl<T: Writable> Writable for Vec<T> {
     }
 }
 
-#[cfg(feature = "uuid")]
+impl Writable for Nbt {
+    fn write_to(&self, writer: &mut impl Write) -> io::Result<()> {
+        self.write(writer)
+    }
+}
+
 impl Writable for Uuid {
     fn write_to(&self, writer: &mut impl Write) -> io::Result<()> {
         writer.write_u128::<BE>(self.as_u128())

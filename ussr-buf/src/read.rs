@@ -3,7 +3,6 @@ use std::io::Read;
 use byteorder::{ReadBytesExt, BE};
 use paste::paste;
 use ussr_nbt::owned::Nbt;
-#[cfg(feature = "uuid")]
 use uuid::Uuid;
 
 use crate::{size::MAX_STRING_LENGTH, ReadError, Readable, VarReadable};
@@ -155,7 +154,6 @@ impl Readable for Nbt {
     }
 }
 
-#[cfg(feature = "uuid")]
 impl Readable for Uuid {
     fn read_from(reader: &mut impl Read) -> Result<Self, ReadError> {
         Ok(Uuid::from_u128(reader.read_u128::<BE>()?))

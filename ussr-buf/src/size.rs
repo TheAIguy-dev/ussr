@@ -1,6 +1,5 @@
 //! Will likely be removed
 
-#[cfg(feature = "uuid")]
 use uuid::Uuid;
 
 use crate::{Size, VarSize};
@@ -17,9 +16,7 @@ macro_rules! impl_size {
         )*
     };
 }
-impl_size!(bool, u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64);
-#[cfg(feature = "uuid")]
-impl_size!(Uuid);
+impl_size!(bool, u8, u16, u32, u64, u128, i8, i16, i32, i64, i128, f32, f64, Uuid);
 
 impl VarSize for u32 {
     const MIN_SIZE: usize = 1;
