@@ -31,6 +31,7 @@ macro_rules! swap_endian_use {
     };
 }
 
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 swap_endian_impl! {
     avx2: "avx2",
     avx: "avx",

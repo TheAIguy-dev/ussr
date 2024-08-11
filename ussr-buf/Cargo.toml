@@ -6,9 +6,9 @@ edition = "2021"
 [dependencies]
 byteorder = "1.5.0"
 paste = "1.0.15"
-thiserror = "1.0.61"
-ussr-nbt = { version = "0.1.2", path = "../ussr-nbt" }
-uuid = { version = "1.8.0", optional = true }
+thiserror = "1.0.63"
+ussr-nbt = "0.1.2"
+uuid = { version = "1.10.0", optional = true }
 
 [features]
 default = ["uuid"]

@@ -14,7 +14,6 @@ impl TryInto<u8> for Tag<'_> {
         }
     }
 }
-
 impl TryInto<i16> for Tag<'_> {
     type Error = ();
 
@@ -26,7 +25,6 @@ impl TryInto<i16> for Tag<'_> {
         }
     }
 }
-
 impl TryInto<i32> for Tag<'_> {
     type Error = ();
 
@@ -38,7 +36,6 @@ impl TryInto<i32> for Tag<'_> {
         }
     }
 }
-
 impl TryInto<i64> for Tag<'_> {
     type Error = ();
 
@@ -50,7 +47,6 @@ impl TryInto<i64> for Tag<'_> {
         }
     }
 }
-
 impl TryInto<f32> for Tag<'_> {
     type Error = ();
 
@@ -62,7 +58,6 @@ impl TryInto<f32> for Tag<'_> {
         }
     }
 }
-
 impl TryInto<f64> for Tag<'_> {
     type Error = ();
 
@@ -74,7 +69,6 @@ impl TryInto<f64> for Tag<'_> {
         }
     }
 }
-
 impl<'a> TryInto<&'a [u8]> for Tag<'a> {
     type Error = ();
 
@@ -82,11 +76,12 @@ impl<'a> TryInto<&'a [u8]> for Tag<'a> {
     fn try_into(self) -> Result<&'a [u8], Self::Error> {
         match self {
             Tag::ByteArray(value) => Ok(value),
+            Tag::List(List::Byte(value)) => Ok(value),
+            Tag::List(List::Empty) => Ok(&[]),
             _ => Err(()),
         }
     }
 }
-
 impl<'a> TryInto<&'a mstr> for Tag<'a> {
     type Error = ();
 
@@ -98,7 +93,6 @@ impl<'a> TryInto<&'a mstr> for Tag<'a> {
         }
     }
 }
-
 impl<'a> TryInto<List<'a>> for Tag<'a> {
     type Error = ();
 
@@ -110,7 +104,6 @@ impl<'a> TryInto<List<'a>> for Tag<'a> {
         }
     }
 }
-
 impl<'a> TryInto<Compound<'a>> for Tag<'a> {
     type Error = ();
 
@@ -122,7 +115,6 @@ impl<'a> TryInto<Compound<'a>> for Tag<'a> {
         }
     }
 }
-
 impl<'a> TryInto<RawSlice<'a, i32>> for Tag<'a> {
     type Error = ();
 
@@ -130,11 +122,25 @@ impl<'a> TryInto<RawSlice<'a, i32>> for Tag<'a> {
     fn try_into(self) -> Result<RawSlice<'a, i32>, Self::Error> {
         match self {
             Tag::IntArray(value) => Ok(value),
+            Tag::List(List::Int(value)) => Ok(value),
+            Tag::List(List::Empty) => Ok(RawSlice::new()),
             _ => Err(()),
         }
     }
 }
+impl<'a> TryInto<Cow<'a, [i32]>> for Tag<'a> {
+    type Error = ();
 
+    #[inline]
+    fn try_into(self) -> Result<Cow<'a, [i32]>, Self::Error> {
+        match self {
+            Tag::IntArray(value) => Ok(value.into()),
+            Tag::List(List::Int(value)) => Ok(value.into()),
+            Tag::List(List::Empty) => Ok((&[]).into()),
+            _ => Err(()),
+        }
+    }
+}
 impl<'a> TryInto<RawSlice<'a, i64>> for Tag<'a> {
     type Error = ();
 
@@ -142,6 +148,21 @@ impl<'a> TryInto<RawSlice<'a, i64>> for Tag<'a> {
     fn try_into(self) -> Result<RawSlice<'a, i64>, Self::Error> {
         match self {
             Tag::LongArray(value) => Ok(value),
+            Tag::List(List::Long(value)) => Ok(value),
+            Tag::List(List::Empty) => Ok(RawSlice::new()),
+            _ => Err(()),
+        }
+    }
+}
+impl<'a> TryInto<Cow<'a, [i64]>> for Tag<'a> {
+    type Error = ();
+
+    #[inline]
+    fn try_into(self) -> Result<Cow<'a, [i64]>, Self::Error> {
+        match self {
+            Tag::LongArray(value) => Ok(value.into()),
+            Tag::List(List::Long(value)) => Ok(value.into()),
+            Tag::List(List::Empty) => Ok((&[]).into()),
             _ => Err(()),
         }
     }
@@ -159,7 +180,6 @@ impl<'a> TryInto<&'a [u8]> for List<'a> {
         }
     }
 }
-
 impl<'a> TryInto<RawSlice<'a, i16>> for List<'a> {
     type Error = ();
 
@@ -172,7 +192,6 @@ impl<'a> TryInto<RawSlice<'a, i16>> for List<'a> {
         }
     }
 }
-
 impl<'a> TryInto<Cow<'a, [i16]>> for List<'a> {
     type Error = ();
 
@@ -185,7 +204,6 @@ impl<'a> TryInto<Cow<'a, [i16]>> for List<'a> {
         }
     }
 }
-
 impl<'a> TryInto<RawSlice<'a, i32>> for List<'a> {
     type Error = ();
 
@@ -198,7 +216,6 @@ impl<'a> TryInto<RawSlice<'a, i32>> for List<'a> {
         }
     }
 }
-
 impl<'a> TryInto<Cow<'a, [i32]>> for List<'a> {
     type Error = ();
 
@@ -211,7 +228,6 @@ impl<'a> TryInto<Cow<'a, [i32]>> for List<'a> {
         }
     }
 }
-
 impl<'a> TryInto<RawSlice<'a, i64>> for List<'a> {
     type Error = ();
 
@@ -224,7 +240,6 @@ impl<'a> TryInto<RawSlice<'a, i64>> for List<'a> {
         }
     }
 }
-
 impl<'a> TryInto<Cow<'a, [i64]>> for List<'a> {
     type Error = ();
 
@@ -237,7 +252,6 @@ impl<'a> TryInto<Cow<'a, [i64]>> for List<'a> {
         }
     }
 }
-
 impl<'a> TryInto<RawSlice<'a, f32>> for List<'a> {
     type Error = ();
 
@@ -250,7 +264,6 @@ impl<'a> TryInto<RawSlice<'a, f32>> for List<'a> {
         }
     }
 }
-
 impl<'a> TryInto<Cow<'a, [f32]>> for List<'a> {
     type Error = ();
 
@@ -263,7 +276,6 @@ impl<'a> TryInto<Cow<'a, [f32]>> for List<'a> {
         }
     }
 }
-
 impl<'a> TryInto<RawSlice<'a, f64>> for List<'a> {
     type Error = ();
 
@@ -276,7 +288,6 @@ impl<'a> TryInto<RawSlice<'a, f64>> for List<'a> {
         }
     }
 }
-
 impl<'a> TryInto<Cow<'a, [f64]>> for List<'a> {
     type Error = ();
 
@@ -289,7 +300,6 @@ impl<'a> TryInto<Cow<'a, [f64]>> for List<'a> {
         }
     }
 }
-
 impl<'a> TryInto<Vec<&'a mstr>> for List<'a> {
     type Error = ();
 
@@ -302,7 +312,6 @@ impl<'a> TryInto<Vec<&'a mstr>> for List<'a> {
         }
     }
 }
-
 impl<'a> TryInto<Vec<List<'a>>> for List<'a> {
     type Error = ();
 
@@ -315,7 +324,6 @@ impl<'a> TryInto<Vec<List<'a>>> for List<'a> {
         }
     }
 }
-
 impl<'a> TryInto<Vec<Compound<'a>>> for List<'a> {
     type Error = ();
 
@@ -328,7 +336,6 @@ impl<'a> TryInto<Vec<Compound<'a>>> for List<'a> {
         }
     }
 }
-
 impl<'a> TryInto<Vec<RawSlice<'a, i32>>> for List<'a> {
     type Error = ();
 
@@ -341,7 +348,6 @@ impl<'a> TryInto<Vec<RawSlice<'a, i32>>> for List<'a> {
         }
     }
 }
-
 impl<'a> TryInto<Vec<Cow<'a, [i32]>>> for List<'a> {
     type Error = ();
 
@@ -354,7 +360,6 @@ impl<'a> TryInto<Vec<Cow<'a, [i32]>>> for List<'a> {
         }
     }
 }
-
 impl<'a> TryInto<Vec<RawSlice<'a, i64>>> for List<'a> {
     type Error = ();
 
@@ -367,7 +372,6 @@ impl<'a> TryInto<Vec<RawSlice<'a, i64>>> for List<'a> {
         }
     }
 }
-
 impl<'a> TryInto<Vec<Cow<'a, [i64]>>> for List<'a> {
     type Error = ();
 

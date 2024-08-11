@@ -4,16 +4,16 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bytes = "1.6.0"
+bytes = "1.7.1"
 cfg-if = "1.0.0"
 paste = "1.0.15"
 strum_macros = "0.26.4"
-thiserror = "1.0.61"
+thiserror = "1.0.63"
 tracing = "0.1.40"
 ussr-buf = { version = "0.1.0", path = "../ussr-buf" }
-ussr-nbt = { version = "0.1.2", path = "../ussr-nbt" }
+ussr-nbt = "0.1.2"
 ussr-protocol-macros = { version = "0.1.0", path = "ussr-protocol-macros" }
-uuid = "1.8.0"
+uuid = "1.10.0"
 
 [features]
 default = ["v1_7_2"]

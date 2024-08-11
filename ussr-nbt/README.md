@@ -1,6 +1,6 @@
 # ussr-nbt
 
-A very fast fast and versatile NBT library for Minecraft: Java Edition.
+A very fast and versatile NBT library for Minecraft: Java Edition.
 
 Some features of this library:
 
@@ -72,4 +72,4 @@ Plots are generated using [`criterion`](https://crates.io/crates/criterion).
 
 ## Cargo features
 
-For swapping endianness in bulk this library uses SIMD instructions. By default, it will detect CPU features and use the fastest available instruction set. However, by disabling the `rt-cpu-feat` feature, it will use the fallback implementation, which is actually the most performant implementation if compiled with `-C target-cpu=native`. Note that this flag will make the resulting binary not be able to run on CPUs other than the one it was compiled on.
+For swapping endianness in bulk this library uses SIMD instructions. By default, it will detect CPU features and use the fastest available instruction set. However, if you disable the `rt-cpu-feat` feature, it will always use the fallback implementation, which is actually the most performant implementation if compiled with `-C target-cpu=native`. Note that this flag will make the resulting binary not be able to run on CPUs other than the one it was compiled on.

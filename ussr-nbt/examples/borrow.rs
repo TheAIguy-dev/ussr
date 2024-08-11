@@ -1,6 +1,6 @@
 //! An example of using the [`ussr_nbt::borrow`] module.
 
-use std::borrow::Borrow;
+use std::io::Cursor;
 
 use ussr_nbt::{borrow::*, mutf8::mstr};
 
@@ -12,7 +12,8 @@ fn main() {
         5, 0, 0, 0, 3, 63, 128, 0, 0, 64, 0, 0, 0, 64, 64, 0, 0, 0,
     ];
 
-    let nbt: Nbt = Nbt::read(&mut &buf[..]).unwrap();
+    // Reading from a [`Cursor`] is ever so slightly faster than from a byte slice.
+    let nbt: Nbt = Nbt::read(&mut Cursor::new(&buf)).unwrap();
     assert_eq!(
         nbt.compound
             .tags
