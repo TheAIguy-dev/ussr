@@ -56,3 +56,57 @@ pub(super) fn write_slice<'a, T: Num>(writer: &mut impl Writer, slice: RawSlice<
     writer.write_i32(len);
     writer.write_slice(&slice.to_bytes()[..len as usize * size_of::<T>()]);
 }
+
+macro_rules! impl_tag {
+    ($name:ident, $( $(@$deref:tt)? + )? $type:ty) => {
+        paste! {
+            #[inline]
+            pub fn $name(&self) -> Option<$type> {
+                match self {
+                    Tag::[< $name:camel >](val) => Some(impl_tag!(@internal { $( $($deref)? + )? } { val } { *val })),
+                    _ => None,
+                }
+            }
+
+            impl_tag!(@internal { $( $($deref)? + )? } {} {
+                #[inline]
+                pub fn [< $name _mut >](&mut self) -> Option<&mut $type> {
+                    match self {
+                        Tag::[< $name:camel >](val) => Some(val),
+                        _ => None,
+                    }
+                }
+
+                #[inline]
+                pub fn [< into_ $name >](self) -> Option<$type> {
+                    match self {
+                        Tag::[< $name:camel >](val) => Some(val),
+                        _ => None,
+                    }
+                }
+            });
+
+        }
+    };
+    ( @internal {   } { $($then:tt)* } { $($else:tt)* } ) => { $($then)* };
+    ( @internal { + } { $($then:tt)* } { $($else:tt)* } ) => { $($else)* };
+}
+pub(super) use impl_tag;
+
+macro_rules! impl_list {
+    ($name:ident, $( $(@$deref:tt)? + )? $type:ty, $new:expr) => {
+        paste! {
+            #[inline]
+            pub fn [< $name s >](&self) -> Option<$type> {
+                match self {
+                    List::[< $name:camel >](val) => Some(impl_list!(@internal { $( $($deref)? + )? } { val } { *val })),
+                    List::Empty => Some(const { $new }),
+                    _ => None,
+                }
+            }
+        }
+    };
+    ( @internal {   } { $($then:tt)* } { $($else:tt)* } ) => { $($then)* };
+    ( @internal { + } { $($then:tt)* } { $($else:tt)* } ) => { $($else)* };
+}
+pub(super) use impl_list;

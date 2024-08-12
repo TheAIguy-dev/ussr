@@ -78,3 +78,68 @@ pub(super) fn write_byte_vec(writer: &mut impl Write, vec: &[u8]) -> io::Result<
     writer.write_i32::<BE>(len)?;
     writer.write_all(&vec[..len as usize])
 }
+
+macro_rules! impl_tag {
+    ($name:ident, $( $(@$deref:tt)? + )? $type:ty) => {
+        paste! {
+            #[inline]
+            pub fn $name(&self) -> Option<impl_tag!(@internal { $( $($deref)? + )? } { &$type } { $type })> {
+                match self {
+                    Tag::[< $name:camel >](val) => Some(impl_tag!(@internal { $( $($deref)? + )? } { val } { *val })),
+                    _ => None,
+                }
+            }
+
+            #[inline]
+            pub fn [< $name _mut >](&mut self) -> Option<&mut $type> {
+                match self {
+                    Tag::[< $name:camel >](val) => Some(val),
+                    _ => None,
+                }
+            }
+
+            #[inline]
+            pub fn [< into_ $name >](self) -> Option<$type> {
+                match self {
+                    Tag::[< $name:camel >](val) => Some(val),
+                    _ => None,
+                }
+            }
+        }
+    };
+    ( @internal {   } { $($then:tt)* } { $($else:tt)* } ) => { $($then)* };
+    ( @internal { + } { $($then:tt)* } { $($else:tt)* } ) => { $($else)* };
+}
+pub(super) use impl_tag;
+
+macro_rules! impl_list {
+    ($name:ident, $type:ty) => {
+        paste! {
+            #[inline]
+            pub fn [< $name s >](&self) -> Option<&$type> {
+                match self {
+                    List::[< $name:camel >](val) => Some(val),
+                    List::Empty => Some(const { &$type::new() }),
+                    _ => None,
+                }
+            }
+
+            #[inline]
+            pub fn [< $name s _mut >](&mut self) -> Option<&mut $type> {
+                match self {
+                    List::[< $name:camel >](val) => Some(val),
+                    _ => None,
+                }
+            }
+
+            #[inline]
+            pub fn [< into_ $name s >](self) -> Option<$type> {
+                match self {
+                    List::[< $name:camel >](val) => Some(val),
+                    _ => None,
+                }
+            }
+        }
+    };
+}
+pub(super) use impl_list;

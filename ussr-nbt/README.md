@@ -19,7 +19,7 @@ use ussr_nbt::owned::*;
 fn main() {
     let mut conn: TcpStream = TcpStream::connect("127.0.0.1:25565").unwrap();
     let nbt: Nbt = Nbt::read(&mut conn).unwrap();
-    println!("{:#?}", nbt);
+    println!("{nbt:#?}");
 }
 ```
 

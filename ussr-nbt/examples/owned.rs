@@ -19,5 +19,5 @@ fn main() {
     .unwrap();
 
     let nbt: Nbt = Nbt::read(&mut &buf[..]).unwrap();
-    println!("{:#?}", nbt);
+    println!("{nbt:#?}");
 }

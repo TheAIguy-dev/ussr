@@ -9,6 +9,7 @@ use std::io::Read;
 
 use byteorder::{ReadBytesExt, WriteBytesExt, BE};
 use io::Write;
+use paste::paste;
 
 use crate::{endian::RawVec, mutf8::MString, NbtReadError, *};
 use util::*;
@@ -218,143 +219,18 @@ impl Tag {
         }
     }
 
-    /// Get the byte value of the NBT tag if it is a byte tag.
-    ///
-    /// If the tag is not a byte tag, [`None`] is returned.
-    #[inline]
-    pub fn byte(&self) -> Option<u8> {
-        match self {
-            Tag::Byte(val) => Some(*val),
-            _ => None,
-        }
-    }
-
-    /// Get the short value of the NBT tag if it is a short tag.
-    ///
-    /// If the tag is not a short tag, [`None`] is returned.
-    #[inline]
-    pub fn short(&self) -> Option<i16> {
-        match self {
-            Tag::Short(val) => Some(*val),
-            _ => None,
-        }
-    }
-
-    /// Get the int value of the NBT tag if it is an int tag.
-    ///
-    /// If the tag is not an int tag, [`None`] is returned.
-    #[inline]
-    pub fn int(&self) -> Option<i32> {
-        match self {
-            Tag::Int(val) => Some(*val),
-            _ => None,
-        }
-    }
-
-    /// Get the long value of the NBT tag if it is a long tag.
-    ///
-    /// If the tag is not a long tag, [`None`] is returned.
-    #[inline]
-    pub fn long(&self) -> Option<i64> {
-        match self {
-            Tag::Long(val) => Some(*val),
-            _ => None,
-        }
-    }
-
-    /// Get the float value of the NBT tag if it is a float tag.
-    ///
-    /// If the tag is not a float tag, [`None`] is returned.
-    #[inline]
-    pub fn float(&self) -> Option<f32> {
-        match self {
-            Tag::Float(val) => Some(*val),
-            _ => None,
-        }
-    }
-
-    /// Get the double value of the NBT tag if it is a double tag.
-    ///
-    /// If the tag is not a double tag, [`None`] is returned.
-    #[inline]
-    pub fn double(&self) -> Option<f64> {
-        match self {
-            Tag::Double(val) => Some(*val),
-            _ => None,
-        }
-    }
-
-    /// Get the byte array value of the NBT tag if it is a byte array tag or a list of bytes.
-    ///
-    /// If the tag is not a byte array tag, a list of bytes, or an empty list, [`None`] is returned.
-    #[inline]
-    pub fn byte_array(&self) -> Option<&Vec<u8>> {
-        match self {
-            Tag::ByteArray(val) => Some(val),
-            Tag::List(List::Byte(val)) => Some(val),
-            Tag::List(List::Empty) => Some(const { &Vec::new() }),
-            _ => None,
-        }
-    }
-
-    /// Get the string value of the NBT tag if it is a string tag.
-    ///
-    /// If the tag is not a string tag, [`None`] is returned.
-    #[inline]
-    pub fn string(&self) -> Option<&MString> {
-        match self {
-            Tag::String(val) => Some(val),
-            _ => None,
-        }
-    }
-
-    /// Get the list value of the NBT tag if it is a list tag.
-    ///
-    /// If the tag is not a list tag, [`None`] is returned.
-    #[inline]
-    pub fn list(&self) -> Option<&List> {
-        match self {
-            Tag::List(val) => Some(val),
-            _ => None,
-        }
-    }
-
-    /// Get the compound value of the NBT tag if it is a compound tag.
-    ///
-    /// If the tag is not a compound tag, [`None`] is returned.
-    #[inline]
-    pub fn compound(&self) -> Option<&Compound> {
-        match self {
-            Tag::Compound(val) => Some(val),
-            _ => None,
-        }
-    }
-
-    /// Get the int array value of the NBT tag if it is an int array tag or a list of ints.
-    ///
-    /// If the tag is not an int array tag, a list of ints, or an empty list, [`None`] is returned.
-    #[inline]
-    pub fn int_array(&self) -> Option<&RawVec<i32>> {
-        match self {
-            Tag::IntArray(val) => Some(val),
-            Tag::List(List::Int(val)) => Some(val),
-            Tag::List(List::Empty) => Some(const { &RawVec::new() }),
-            _ => None,
-        }
-    }
-
-    /// Get the long array value of the NBT tag if it is a long array tag or a list of longs.
-    ///
-    /// If the tag is not a long array tag, a list of longs, or an empty list, [`None`] is returned.
-    #[inline]
-    pub fn long_array(&self) -> Option<&RawVec<i64>> {
-        match self {
-            Tag::LongArray(val) => Some(val),
-            Tag::List(List::Long(val)) => Some(val),
-            Tag::List(List::Empty) => Some(const { &RawVec::new() }),
-            _ => None,
-        }
-    }
+    impl_tag!(byte, +u8);
+    impl_tag!(short, +i16);
+    impl_tag!(int, +i32);
+    impl_tag!(long, +i64);
+    impl_tag!(float, +f32);
+    impl_tag!(double, +f64);
+    impl_tag!(byte_array, Vec<u8>);
+    impl_tag!(string, MString);
+    impl_tag!(list, List);
+    impl_tag!(compound, Compound);
+    impl_tag!(int_array, RawVec<i32>);
+    impl_tag!(long_array, RawVec<i64>);
 }
 
 impl List {
@@ -520,149 +396,15 @@ impl List {
         Ok(())
     }
 
-    /// Get the byte array of the list if it is a byte array.
-    ///
-    /// If the list is not a byte array or an empty list, [`None`] is returned.
-    #[inline]
-    pub fn byte(&self) -> Option<&Vec<u8>> {
-        match self {
-            List::Byte(vec) => Some(vec),
-            List::Empty => Some(const { &Vec::new() }),
-            _ => None,
-        }
-    }
-
-    /// Get the short array of the list if it is a short array.
-    ///
-    /// If the list is not a short array or an empty list, [`None`] is returned.
-    #[inline]
-    pub fn short(&self) -> Option<&RawVec<i16>> {
-        match self {
-            List::Short(vec) => Some(vec),
-            List::Empty => Some(const { &RawVec::new() }),
-            _ => None,
-        }
-    }
-
-    /// Get the int array of the list if it is an int array.
-    ///
-    /// If the list is not an int array or an empty list, [`None`] is returned.
-    #[inline]
-    pub fn int(&self) -> Option<&RawVec<i32>> {
-        match self {
-            List::Int(vec) => Some(vec),
-            List::Empty => Some(const { &RawVec::new() }),
-            _ => None,
-        }
-    }
-
-    /// Get the long array of the list if it is a long array.
-    ///
-    /// If the list is not a long array or an empty list, [`None`] is returned.
-    #[inline]
-    pub fn long(&self) -> Option<&RawVec<i64>> {
-        match self {
-            List::Long(vec) => Some(vec),
-            List::Empty => Some(const { &RawVec::new() }),
-            _ => None,
-        }
-    }
-
-    /// Get the float array of the list if it is a float array.
-    ///
-    /// If the list is not a float array or an empty list, [`None`] is returned.
-    #[inline]
-    pub fn float(&self) -> Option<&RawVec<f32>> {
-        match self {
-            List::Float(vec) => Some(vec),
-            List::Empty => Some(const { &RawVec::new() }),
-            _ => None,
-        }
-    }
-
-    /// Get the double array of the list if it is a double array.
-    ///
-    /// If the list is not a double array or an empty list, [`None`] is returned.
-    #[inline]
-    pub fn double(&self) -> Option<&RawVec<f64>> {
-        match self {
-            List::Double(vec) => Some(vec),
-            List::Empty => Some(const { &RawVec::new() }),
-            _ => None,
-        }
-    }
-
-    /// Get the byte array list of the list if it is a byte array list.
-    ///
-    /// If the list is not a byte array list or an empty list, [`None`] is returned.
-    #[inline]
-    pub fn byte_array(&self) -> Option<&Vec<Vec<u8>>> {
-        match self {
-            List::ByteArray(vec) => Some(vec),
-            List::Empty => Some(const { &Vec::new() }),
-            _ => None,
-        }
-    }
-
-    /// Get the string list of the list if it is a string list.
-    ///
-    /// If the list is not a string list or an empty list, [`None`] is returned.
-    #[inline]
-    pub fn string(&self) -> Option<&Vec<MString>> {
-        match self {
-            List::String(vec) => Some(vec),
-            List::Empty => Some(const { &Vec::new() }),
-            _ => None,
-        }
-    }
-
-    /// Get the list list of the list if it is a list list.
-    ///
-    /// If the list is not a list list or an empty list, [`None`] is returned.
-    ///
-    /// List list list List list list.
-    #[inline]
-    pub fn list(&self) -> Option<&Vec<List>> {
-        match self {
-            List::List(vec) => Some(vec),
-            List::Empty => Some(const { &Vec::new() }),
-            _ => None,
-        }
-    }
-
-    /// Get the compound list of the list if it is a compound list.
-    ///
-    /// If the list is not a compound list or an empty list, [`None`] is returned.
-    #[inline]
-    pub fn compound(&self) -> Option<&Vec<Compound>> {
-        match self {
-            List::Compound(vec) => Some(vec),
-            List::Empty => Some(const { &Vec::new() }),
-            _ => None,
-        }
-    }
-
-    /// Get the int array list of the list if it is an int array list.
-    ///
-    /// If the list is not an int array list or an empty list, [`None`] is returned.
-    #[inline]
-    pub fn int_array(&self) -> Option<&Vec<RawVec<i32>>> {
-        match self {
-            List::IntArray(vec) => Some(vec),
-            List::Empty => Some(const { &Vec::new() }),
-            _ => None,
-        }
-    }
-
-    /// Get the long array list of the list if it is a long array list.
-    ///
-    /// If the list is not a long array list or an empty list, [`None`] is returned.
-    #[inline]
-    pub fn long_array(&self) -> Option<&Vec<RawVec<i64>>> {
-        match self {
-            List::LongArray(vec) => Some(vec),
-            List::Empty => Some(const { &Vec::new() }),
-            _ => None,
-        }
-    }
+    impl_list!(byte, Vec::<u8>);
+    impl_list!(short, RawVec::<i16>);
+    impl_list!(int, RawVec::<i32>);
+    impl_list!(long, RawVec::<i64>);
+    impl_list!(float, RawVec::<f32>);
+    impl_list!(double, RawVec::<f64>);
+    impl_list!(string, Vec::<MString>);
+    impl_list!(list, Vec::<List>);
+    impl_list!(compound, Vec::<Compound>);
+    impl_list!(int_array, Vec::<RawVec<i32>>);
+    impl_list!(long_array, Vec::<RawVec<i64>>);
 }
