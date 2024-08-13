@@ -45,6 +45,7 @@ pub enum NbtReadError {
 /// Options for reading NBT data.
 //? Automatically handle endianess?
 //? Check for duplicate keys?
+#[derive(Debug, Clone, Copy)]
 pub struct ReadOpts {
     /// The maximum depth to read.
     /// Defaults to `128`.
@@ -56,6 +57,7 @@ pub struct ReadOpts {
 }
 
 /// Options for writing NBT data.
+#[derive(Debug, Clone, Copy)]
 pub struct WriteOpts {
     /// Whether to write the root compound name or not.
     /// Defaults to `true`.

@@ -41,12 +41,15 @@ fn bench_read_file(filename: &str, c: &mut Criterion) {
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 fn bench(c: &mut Criterion) {
-    bench_read_file("TheAIguy_.nbt", c);
+    bench_read_file("test_player.nbt", c);
 }
 
 criterion_group! {
     name = compare;
-    config = Criterion::default().warm_up_time(Duration::from_secs(5)).measurement_time(Duration::from_secs(60)).sample_size(100_000);
+    config = Criterion::default()
+                .warm_up_time(Duration::from_secs(5))
+                // .measurement_time(Duration::from_secs(60))
+                .sample_size(10_000);
     targets = bench
 }
 // criterion_group!(compare, bench);

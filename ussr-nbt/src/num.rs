@@ -1,7 +1,5 @@
 //! A trait for swapping the endianness of a number.
 
-use bytemuck::Pod;
-
 mod private {
     pub trait Sealed {}
 
@@ -13,9 +11,23 @@ mod private {
     impl Sealed for f64 {}
 }
 
+use bytemuck::Pod;
+
 /// A trait for swapping the endianness of a number.
 pub trait Num: private::Sealed + Pod {
     fn swap_bytes(self) -> Self;
+}
+
+impl_num!(i16, i32, i64);
+impl Num for f32 {
+    fn swap_bytes(self) -> Self {
+        f32::from_bits(self.to_bits().swap_bytes())
+    }
+}
+impl Num for f64 {
+    fn swap_bytes(self) -> Self {
+        f64::from_bits(self.to_bits().swap_bytes())
+    }
 }
 
 macro_rules! impl_num {
@@ -30,15 +42,3 @@ macro_rules! impl_num {
     };
 }
 use impl_num;
-
-impl_num!(i16, i32, i64);
-impl Num for f32 {
-    fn swap_bytes(self) -> Self {
-        f32::from_bits(self.to_bits().swap_bytes())
-    }
-}
-impl Num for f64 {
-    fn swap_bytes(self) -> Self {
-        f64::from_bits(self.to_bits().swap_bytes())
-    }
-}

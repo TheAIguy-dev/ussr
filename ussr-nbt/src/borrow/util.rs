@@ -1,112 +1,152 @@
-use std::io;
-
-use super::{reader::Reader, writer::Writer};
-use crate::{endian::RawSlice, mutf8::mstr, num::Num, NbtReadError};
+use super::reader::Reader;
+use crate::*;
 
 #[inline]
-pub(super) fn read_str<'a>(reader: &mut impl Reader<'a>) -> Result<&'a mstr, NbtReadError> {
-    let len: u16 = reader.read_u16()?;
-    let buf: &[u8] = reader.read_slice(len as usize)?;
-    Ok(mstr::from_mutf8(buf))
-}
-
-#[inline]
-pub(super) fn read_slice_with_len<'a, T: Num>(
+pub fn read_compound<'a>(
     reader: &mut impl Reader<'a>,
-) -> Result<RawSlice<'a, T>, NbtReadError> {
-    let len: i32 = reader.read_i32()?;
-
-    if len <= 0 {
-        return Ok(RawSlice::new());
+    len: &mut usize,
+) -> Result<(), NbtReadError> {
+    let mut tag_id: u8 = reader.read_u8()?;
+    while tag_id != TAG_END {
+        *len += size_of::<u8>();
+        read_string(reader, len)?;
+        read_tag(reader, len, tag_id)?;
+        tag_id = reader.read_u8()?;
     }
-
-    read_slice(reader, len as usize)
+    *len += size_of::<u8>();
+    Ok(())
 }
 
 #[inline]
-pub(super) fn read_byte_slice_with_len<'a>(reader: &mut impl Reader<'a>) -> io::Result<&'a [u8]> {
-    let len: i32 = reader.read_i32()?;
-
-    if len <= 0 {
-        return Ok(&[]);
-    }
-
-    reader.read_slice(len as usize)
-}
-
-#[inline]
-pub(super) fn read_slice<'a, T: Num>(
+pub fn read_tag<'a>(
     reader: &mut impl Reader<'a>,
-    len: usize,
-) -> Result<RawSlice<'a, T>, NbtReadError> {
-    let buf: &[u8] = reader.read_slice(len * size_of::<T>())?;
-    Ok(RawSlice::from_bytes(buf))
+    len: &mut usize,
+    tag_id: u8,
+) -> Result<(), NbtReadError> {
+    match tag_id {
+        TAG_BYTE => {
+            reader.read_u8()?;
+            *len += size_of::<u8>();
+        }
+        TAG_SHORT => {
+            reader.read_i16()?;
+            *len += size_of::<i16>();
+        }
+        TAG_INT => {
+            reader.read_i32()?;
+            *len += size_of::<i32>();
+        }
+        TAG_LONG => {
+            reader.read_i64()?;
+            *len += size_of::<i64>();
+        }
+        TAG_FLOAT => {
+            reader.read_f32()?;
+            *len += size_of::<f32>();
+        }
+        TAG_DOUBLE => {
+            reader.read_f64()?;
+            *len += size_of::<f64>();
+        }
+        TAG_BYTE_ARRAY => {
+            read_with_i32_len(reader, len, size_of::<u8>())?;
+        }
+        TAG_STRING => {
+            read_string(reader, len)?;
+        }
+        TAG_LIST => read_list(reader, len)?,
+        TAG_COMPOUND => read_compound(reader, len)?,
+        TAG_INT_ARRAY => {
+            read_with_i32_len(reader, len, size_of::<i32>())?;
+        }
+        TAG_LONG_ARRAY => {
+            read_with_i32_len(reader, len, size_of::<i64>())?;
+        }
+        _ => return Err(NbtReadError::InvalidTag(tag_id)),
+    }
+    Ok(())
 }
 
 #[inline]
-pub(super) fn write_str(writer: &mut impl Writer, str: &mstr) {
-    let len: u16 = str.len().min(u16::MAX as usize) as u16;
-    writer.write_u16(len);
-    writer.write_slice(&str.as_bytes()[..len as usize]);
+pub fn read_list<'a>(reader: &mut impl Reader<'a>, len: &mut usize) -> Result<(), NbtReadError> {
+    let tag_id: u8 = reader.read_u8()?;
+    *len += size_of::<u8>();
+    let length: i32 = reader.read_i32()?;
+    *len += size_of::<i32>();
+
+    if length <= 0 {
+        return Ok(());
+    }
+    let length: usize = length as usize;
+
+    match tag_id {
+        TAG_BYTE => read(reader, len, length, size_of::<u8>()),
+        TAG_SHORT => read(reader, len, length, size_of::<i16>()),
+        TAG_INT => read(reader, len, length, size_of::<i32>()),
+        TAG_LONG => read(reader, len, length, size_of::<i64>()),
+        TAG_FLOAT => read(reader, len, length, size_of::<f32>()),
+        TAG_DOUBLE => read(reader, len, length, size_of::<f64>()),
+        TAG_BYTE_ARRAY => {
+            for _ in 0..length {
+                read_with_i32_len(reader, len, size_of::<u8>())?;
+            }
+            Ok(())
+        }
+        TAG_STRING => {
+            for _ in 0..length {
+                read_string(reader, len)?;
+            }
+            Ok(())
+        }
+        TAG_LIST => {
+            for _ in 0..length {
+                read_list(reader, len)?;
+            }
+            Ok(())
+        }
+        TAG_COMPOUND => read_compound(reader, len),
+        TAG_INT_ARRAY => {
+            for _ in 0..length {
+                read_with_i32_len(reader, len, size_of::<i32>())?;
+            }
+            Ok(())
+        }
+        TAG_LONG_ARRAY => {
+            for _ in 0..length {
+                read_with_i32_len(reader, len, size_of::<i64>())?;
+            }
+            Ok(())
+        }
+        _ => Err(NbtReadError::InvalidTag(tag_id)),
+    }
 }
 
 #[inline]
-pub(super) fn write_slice<'a, T: Num>(writer: &mut impl Writer, slice: RawSlice<'a, T>) {
-    let len: i32 = (slice.len() as i32).min(i32::MAX);
-    writer.write_i32(len);
-    writer.write_slice(&slice.to_bytes()[..len as usize * size_of::<T>()]);
+pub fn read_string<'a>(reader: &mut impl Reader<'a>, len: &mut usize) -> Result<(), NbtReadError> {
+    let length: u16 = reader.read_u16()?;
+    reader.read_slice(length as usize)?;
+    *len += size_of::<u16>() + length as usize;
+    Ok(())
 }
 
-macro_rules! impl_tag {
-    ($name:ident, $( $(@$deref:tt)? + )? $type:ty) => {
-        paste! {
-            #[inline]
-            pub fn $name(&self) -> Option<$type> {
-                match self {
-                    Tag::[< $name:camel >](val) => Some(impl_tag!(@internal { $( $($deref)? + )? } { val } { *val })),
-                    _ => None,
-                }
-            }
-
-            impl_tag!(@internal { $( $($deref)? + )? } {} {
-                #[inline]
-                pub fn [< $name _mut >](&mut self) -> Option<&mut $type> {
-                    match self {
-                        Tag::[< $name:camel >](val) => Some(val),
-                        _ => None,
-                    }
-                }
-
-                #[inline]
-                pub fn [< into_ $name >](self) -> Option<$type> {
-                    match self {
-                        Tag::[< $name:camel >](val) => Some(val),
-                        _ => None,
-                    }
-                }
-            });
-
-        }
-    };
-    ( @internal {   } { $($then:tt)* } { $($else:tt)* } ) => { $($then)* };
-    ( @internal { + } { $($then:tt)* } { $($else:tt)* } ) => { $($else)* };
+#[inline]
+pub fn read_with_i32_len<'a>(
+    reader: &mut impl Reader<'a>,
+    len: &mut usize,
+    size: usize,
+) -> Result<(), NbtReadError> {
+    let length: i32 = reader.read_i32()?.max(0);
+    read(reader, len, length as usize, size)
 }
-pub(super) use impl_tag;
 
-macro_rules! impl_list {
-    ($name:ident, $( $(@$deref:tt)? + )? $type:ty, $new:expr) => {
-        paste! {
-            #[inline]
-            pub fn [< $name s >](&self) -> Option<$type> {
-                match self {
-                    List::[< $name:camel >](val) => Some(impl_list!(@internal { $( $($deref)? + )? } { val } { *val })),
-                    List::Empty => Some(const { $new }),
-                    _ => None,
-                }
-            }
-        }
-    };
-    ( @internal {   } { $($then:tt)* } { $($else:tt)* } ) => { $($then)* };
-    ( @internal { + } { $($then:tt)* } { $($else:tt)* } ) => { $($else)* };
+#[inline]
+pub fn read<'a>(
+    reader: &mut impl Reader<'a>,
+    len: &mut usize,
+    amount: usize,
+    size: usize,
+) -> Result<(), NbtReadError> {
+    reader.read_slice(amount * size)?;
+    *len += amount;
+    Ok(())
 }
-pub(super) use impl_list;

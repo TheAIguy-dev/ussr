@@ -1,8 +1,18 @@
+mod private {
+    use std::io::Cursor;
+
+    pub trait Sealed {}
+
+    impl Sealed for &[u8] {}
+    impl Sealed for Cursor<&[u8]> {}
+    impl Sealed for Cursor<&Vec<u8>> {}
+}
+
 use std::io::{self, Cursor};
 
 use paste::paste;
 
-pub trait Reader<'a> {
+pub trait Reader<'a>: private::Sealed {
     fn read_slice(&mut self, len: usize) -> io::Result<&'a [u8]>;
 
     read_ty!(u8, u16, u32, i16, i32, i64, f32, f64);
@@ -24,7 +34,7 @@ impl<'a> Reader<'a> for Cursor<&'a [u8]> {
     #[inline]
     fn read_slice(&mut self, len: usize) -> io::Result<&'a [u8]> {
         let pos: usize = self.position() as usize;
-        if len > self.get_ref().as_ref().len() - pos {
+        if len > self.get_ref().len() - pos {
             return Err(io::ErrorKind::UnexpectedEof.into());
         }
         let slice: &[u8] = &self.get_ref()[pos..pos + len];
