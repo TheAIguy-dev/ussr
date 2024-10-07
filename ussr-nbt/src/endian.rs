@@ -29,8 +29,8 @@ impl<B, N> Debug for Endian<B, N> {
     #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Big(_) => write!(f, "Big"),
-            Self::Native(_) => write!(f, "Native"),
+            Endian::Big(_) => write!(f, "Big"),
+            Endian::Native(_) => write!(f, "Native"),
         }
     }
 }
@@ -38,17 +38,19 @@ impl<B, N> Debug for Endian<B, N> {
 impl<T: Num> RawVec<T> {
     /// Creates an empty vector.
     /// Does not allocate.
+    #[must_use]
     #[inline]
-    pub const fn new() -> Self {
-        Self {
+    pub const fn new() -> RawVec<T> {
+        RawVec {
             vec: Endian::Native(Vec::new()),
         }
     }
 
     /// Creates a `RawVec` from a vector in native endian.
+    #[must_use]
     #[inline]
-    pub const fn from_vec(vec: Vec<T>) -> Self {
-        Self {
+    pub const fn from_vec(vec: Vec<T>) -> RawVec<T> {
+        RawVec {
             //? Maybe it's better to swap endianness right away?
             //? If so, then we don't even need [`Endian`] here.
             vec: Endian::Native(vec),
@@ -56,22 +58,30 @@ impl<T: Num> RawVec<T> {
     }
 
     #[inline]
-    pub(crate) const fn from_big(vec: Vec<T>) -> Self {
-        Self {
+    pub(crate) const fn from_big(vec: Vec<T>) -> RawVec<T> {
+        RawVec {
             vec: Endian::Big(vec),
         }
     }
 
     /// Returns the number of elements of type `T` in the vector.
+    #[must_use]
     #[inline]
     pub fn len(&self) -> usize {
         match &self.vec {
-            Endian::Big(vec) => vec.len(),
-            Endian::Native(vec) => vec.len(),
+            Endian::Big(vec) | Endian::Native(vec) => vec.len(),
         }
     }
 
+    /// Returns `true` if the vector contains no elements.
+    #[must_use]
+    #[inline]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Converts the vector into a big endian byte slice.
+    #[must_use]
     #[inline]
     pub fn to_bytes(&self) -> Cow<[u8]> {
         match &self.vec {
@@ -90,12 +100,14 @@ impl<T: Num> RawVec<T> {
     }
 
     /// Creates a copy of the vector and converts it to native endian.
+    #[must_use]
     #[inline]
     pub fn to_vec(&self) -> Vec<T> {
         self.clone().into_vec()
     }
 
     /// Converts the vector into native endian.
+    #[must_use]
     #[inline]
     pub fn into_vec(self) -> Vec<T> {
         match self.vec {
@@ -106,6 +118,13 @@ impl<T: Num> RawVec<T> {
             }
             Endian::Native(vec) => vec,
         }
+    }
+}
+
+impl<T: Num> Default for RawVec<T> {
+    #[inline]
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -132,38 +151,48 @@ impl<T: Num + Debug> Debug for RawVec<T> {
 
 impl<'a, T: Num> RawSlice<'a, T> {
     /// Creates an empty slice.
+    #[must_use]
     #[inline]
-    pub const fn new() -> Self {
-        Self {
+    pub const fn new() -> RawSlice<'static, T> {
+        RawSlice {
             slice: Endian::Native(&[]),
         }
     }
 
     /// Creates a `RawSlice` from a slice in native endian.
     #[inline]
-    pub const fn from_slice(slice: &'a [T]) -> Self {
-        Self {
+    pub const fn from_slice(slice: &'a [T]) -> RawSlice<'a, T> {
+        RawSlice {
             slice: Endian::Native(slice),
         }
     }
 
     #[inline]
-    pub(crate) const fn from_bytes(slice: &'a [u8]) -> Self {
-        Self {
+    pub(crate) const fn from_bytes(slice: &'a [u8]) -> RawSlice<'a, T> {
+        RawSlice {
             slice: Endian::Big(slice),
         }
     }
 
     /// Returns the number of elements of type `T` in the slice.
+    #[must_use]
     #[inline]
-    pub fn len(&self) -> usize {
+    pub const fn len(&self) -> usize {
         match self.slice {
             Endian::Big(slice) => slice.len() / size_of::<T>(),
             Endian::Native(slice) => slice.len(),
         }
     }
 
+    /// Returns `true` if the slice contains no elements.
+    #[must_use]
+    #[inline]
+    pub const fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Converts the slice into a native endian slice of `T`.
+    #[must_use]
     #[inline]
     pub fn to_slice(&self) -> Cow<'a, [T]> {
         match self.slice {
@@ -183,6 +212,7 @@ impl<'a, T: Num> RawSlice<'a, T> {
     }
 
     /// Converts the slice into a big endian byte slice.
+    #[must_use]
     #[inline]
     pub fn to_bytes(&self) -> Cow<'a, [u8]> {
         match self.slice {
@@ -199,6 +229,7 @@ impl<'a, T: Num> RawSlice<'a, T> {
     /// Converts the slice into a raw vector.
     /// Does not swap endianness.
     // This is basically [`ToOwned::to_owned`], but we can't actually implement it because [`Clone`] is implemented.
+    #[must_use]
     #[inline]
     pub fn to_raw_vec(&self) -> RawVec<T> {
         match self.slice {
@@ -209,6 +240,13 @@ impl<'a, T: Num> RawSlice<'a, T> {
             }
             Endian::Native(slice) => RawVec::from_vec(slice.to_vec()),
         }
+    }
+}
+
+impl<'a, T: Num> Default for RawSlice<'a, T> {
+    #[inline]
+    fn default() -> Self {
+        Self::new()
     }
 }
 

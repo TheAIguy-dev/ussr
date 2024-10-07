@@ -1,7 +1,3 @@
-//! Don't be fooled by the simple implementations, I have explored how they
-//! are compiled and they are as efficient as using `portable_simd`, if not better.
-//! The compiler is great at optimizing these functions.
-
 use crate::num::Num;
 
 macro_rules! swap_endian_impl {
@@ -49,7 +45,7 @@ fn swap_endian_fallback<T: Num>(slice: &mut [T]) {
     }
 }
 
-pub(crate) fn swap_endian<T: Num>(slice: &mut [T]) {
+pub fn swap_endian<T: Num>(slice: &mut [T]) {
     #[cfg(feature = "rt_cpu_feat")]
     {
         #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]

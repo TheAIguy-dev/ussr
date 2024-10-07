@@ -14,8 +14,8 @@ pub enum State {
 impl From<NextState> for State {
     fn from(next_state: NextState) -> Self {
         match next_state {
-            NextState::Status => Self::Status,
-            NextState::Login => Self::Login,
+            NextState::Status => State::Status,
+            NextState::Login => State::Login,
         }
     }
 }
@@ -31,8 +31,8 @@ impl TryFrom<i32> for NextState {
 
     fn try_from(value: i32) -> Result<Self, Self::Error> {
         match value {
-            1 => Ok(Self::Status),
-            2 => Ok(Self::Login),
+            1 => Ok(NextState::Status),
+            2 => Ok(NextState::Login),
             _ => Err(()),
         }
     }

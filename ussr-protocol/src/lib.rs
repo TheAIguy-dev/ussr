@@ -26,10 +26,10 @@ pub enum PacketReadError {
 }
 
 impl From<ReadError> for PacketReadError {
-    fn from(e: ReadError) -> Self {
-        match e {
-            ReadError::Io(e) => Self::Io(e),
-            e => Self::Parse(e),
+    fn from(value: ReadError) -> Self {
+        match value {
+            ReadError::Io(e) => PacketReadError::Io(e),
+            e => PacketReadError::Parse(e),
         }
     }
 }

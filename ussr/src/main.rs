@@ -1,3 +1,15 @@
+#![warn(
+    clippy::all,
+    clippy::nursery,
+    clippy::cargo,
+    clippy::style,
+    clippy::suspicious,
+    clippy::correctness,
+    clippy::perf,
+    clippy::pedantic
+)]
+#![allow(clippy::use_self)]
+
 mod init_tracing;
 
 use bevy_app::{App, PostStartup, ScheduleRunnerPlugin};

@@ -38,13 +38,13 @@ struct Server {
 }
 
 impl Server {
-    fn new() -> Self {
+    fn new() -> Server {
         let listener: TcpListener =
             TcpListener::bind("127.0.0.1:25565").expect("Failed to bind server on port 25565");
         listener
             .set_nonblocking(true)
             .expect("Failed to set server to non-blocking");
-        Self { listener }
+        Server { listener }
     }
 }
 
@@ -61,9 +61,9 @@ struct Connection {
 impl Connection {
     /// Create a new connection.
     /// The stream will be made non-blocking, see [`TcpStream::set_nonblocking`].
-    fn new(stream: TcpStream) -> io::Result<Self> {
+    fn new(stream: TcpStream) -> io::Result<Connection> {
         stream.set_nonblocking(true)?;
-        Ok(Self {
+        Ok(Connection {
             stream,
             state: State::Handshaking,
             incoming_buf: BytesMut::new(),

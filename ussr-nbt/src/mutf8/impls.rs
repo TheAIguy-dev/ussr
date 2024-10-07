@@ -4,6 +4,8 @@ use std::{
     ops::Deref,
 };
 
+use simd_cesu8::DecodingError;
+
 use super::{mstr, MString};
 
 impl Deref for MString {
@@ -44,7 +46,7 @@ impl From<&str> for MString {
 }
 
 impl TryFrom<MString> for String {
-    type Error = ();
+    type Error = DecodingError;
 
     #[inline]
     fn try_from(value: MString) -> Result<Self, Self::Error> {
@@ -58,7 +60,8 @@ impl Debug for MString {
         write!(
             f,
             "m\"{}\"",
-            self.decode().unwrap_or(String::from_utf8_lossy(&self.vec))
+            self.decode()
+                .unwrap_or_else(|_| String::from_utf8_lossy(&self.vec))
         )
     }
 }
@@ -66,7 +69,11 @@ impl Debug for MString {
 impl Display for MString {
     #[inline]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.pad(&self.decode().unwrap_or(String::from_utf8_lossy(&self.vec)))
+        f.pad(
+            &self
+                .decode()
+                .unwrap_or_else(|_| String::from_utf8_lossy(&self.vec)),
+        )
     }
 }
 
@@ -129,7 +136,7 @@ impl Debug for mstr {
             "m\"{}\"",
             &self
                 .decode()
-                .unwrap_or(String::from_utf8_lossy(&self.slice))
+                .unwrap_or_else(|_| String::from_utf8_lossy(&self.slice))
         )
     }
 }
@@ -140,7 +147,7 @@ impl Display for mstr {
         f.pad(
             &self
                 .decode()
-                .unwrap_or(String::from_utf8_lossy(&self.slice)),
+                .unwrap_or_else(|_| String::from_utf8_lossy(&self.slice)),
         )
     }
 }
@@ -153,7 +160,7 @@ impl Default for &mstr {
 }
 
 impl<'a> TryFrom<&'a mstr> for Cow<'a, str> {
-    type Error = ();
+    type Error = DecodingError;
 
     #[inline]
     fn try_from(value: &'a mstr) -> Result<Self, Self::Error> {

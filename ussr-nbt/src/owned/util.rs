@@ -82,8 +82,9 @@ pub(super) fn write_byte_vec(writer: &mut impl Write, vec: &[u8]) -> io::Result<
 macro_rules! impl_tag {
     ($name:ident, $( $(@$deref:tt)? + )? $type:ty) => {
         paste! {
+            #[must_use]
             #[inline]
-            pub fn $name(&self) -> Option<impl_tag!(@internal { $( $($deref)? + )? } { &$type } { $type })> {
+            pub const fn $name(&self) -> Option<impl_tag!(@internal { $( $($deref)? + )? } { &$type } { $type })> {
                 match self {
                     Tag::[< $name:camel >](val) => Some(impl_tag!(@internal { $( $($deref)? + )? } { val } { *val })),
                     _ => None,
@@ -98,6 +99,7 @@ macro_rules! impl_tag {
                 }
             }
 
+            #[must_use]
             #[inline]
             pub fn [< into_ $name >](self) -> Option<$type> {
                 match self {
@@ -115,8 +117,9 @@ pub(super) use impl_tag;
 macro_rules! impl_list {
     ($name:ident, $type:ty) => {
         paste! {
+            #[must_use]
             #[inline]
-            pub fn [< $name s >](&self) -> Option<&$type> {
+            pub const fn [< $name s >](&self) -> Option<&$type> {
                 match self {
                     List::[< $name:camel >](val) => Some(val),
                     List::Empty => Some(const { &$type::new() }),
@@ -132,6 +135,7 @@ macro_rules! impl_list {
                 }
             }
 
+            #[must_use]
             #[inline]
             pub fn [< into_ $name s >](self) -> Option<$type> {
                 match self {

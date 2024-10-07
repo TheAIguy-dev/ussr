@@ -320,7 +320,7 @@ impl<S: From<MString>> From<Compound> for Vec<(S, Tag)> {
         value.tags.into_iter().map(|(k, v)| (k.into(), v)).collect()
     }
 }
-impl<S: From<MString> + Eq + Hash> From<Compound> for HashMap<S, Tag> {
+impl<K: From<MString> + Eq + Hash, S: std::hash::BuildHasher + Default> From<Compound> for HashMap<K, Tag, S> {
     #[inline]
     fn from(value: Compound) -> Self {
         value.tags.into_iter().map(|(k, v)| (k.into(), v)).collect()

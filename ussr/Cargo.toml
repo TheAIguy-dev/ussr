@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy_app = { version = "0.14.1", default-features = false }
+bevy_app = { version = "0.14.2", default-features = false }
 chrono = "0.4.38"
 nu-ansi-term = "0.50.1"
 tracing = "0.1.40"

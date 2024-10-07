@@ -35,8 +35,8 @@ fn owned_eq() {
 }
 
 fn gzip_decode(encoded: &[u8]) -> Vec<u8> {
-    let mut buf: Vec<u8> = Vec::with_capacity(encoded.len());
-    if GzDecoder::new(&encoded[..]).read_to_end(&mut buf).is_err() {
+    let mut buf: Vec<u8> = vec![];
+    if GzDecoder::new(encoded).read_to_end(&mut buf).is_err() {
         buf = encoded.to_vec();
     }
     buf

@@ -65,13 +65,13 @@ pub enum List {
 impl Nbt {
     /// Read a complete NBT structure from the given reader with default options.
     #[inline]
-    pub fn read(reader: &mut impl Read) -> Result<Self, NbtReadError> {
-        Self::read_with_opts(reader, ReadOpts::new())
+    pub fn read(reader: &mut impl Read) -> Result<Nbt, NbtReadError> {
+        Nbt::read_with_opts(reader, ReadOpts::new())
     }
 
     /// Read a complete NBT structure from the given reader with custom options.
     #[inline]
-    pub fn read_with_opts(reader: &mut impl Read, opts: ReadOpts) -> Result<Self, NbtReadError> {
+    pub fn read_with_opts(reader: &mut impl Read, opts: ReadOpts) -> Result<Nbt, NbtReadError> {
         let root_tag: u8 = reader.read_u8()?;
         if root_tag != TAG_COMPOUND {
             return Err(NbtReadError::InvalidRootTag(root_tag));
@@ -113,7 +113,7 @@ impl Compound {
         reader: &mut impl Read,
         depth: u16,
         depth_limit: u16,
-    ) -> Result<Self, NbtReadError> {
+    ) -> Result<Compound, NbtReadError> {
         if depth >= depth_limit {
             return Err(NbtReadError::DepthLimitExceeded);
         }
@@ -149,6 +149,7 @@ impl Compound {
 
 impl Tag {
     /// Get the ID of the NBT tag.
+    #[must_use]
     #[inline]
     pub const fn id(&self) -> u8 {
         match self {
@@ -176,7 +177,7 @@ impl Tag {
         tag_id: u8,
         depth: u16,
         depth_limit: u16,
-    ) -> Result<Self, NbtReadError> {
+    ) -> Result<Tag, NbtReadError> {
         if depth >= depth_limit {
             return Err(NbtReadError::DepthLimitExceeded);
         }
@@ -235,6 +236,7 @@ impl Tag {
 
 impl List {
     /// Get the ID of the elements in the NBT list.
+    #[must_use]
     #[inline]
     pub const fn id(&self) -> u8 {
         match self {
@@ -264,7 +266,7 @@ impl List {
         reader: &mut impl Read,
         depth: u16,
         depth_limit: u16,
-    ) -> Result<Self, NbtReadError> {
+    ) -> Result<List, NbtReadError> {
         if depth >= depth_limit {
             return Err(NbtReadError::DepthLimitExceeded);
         }
@@ -347,42 +349,42 @@ impl List {
             List::Float(vec) => write_vec(writer, vec)?,
             List::Double(vec) => write_vec(writer, vec)?,
             List::ByteArray(vec) => {
-                let len: i32 = (vec.len() as i32).min(i32::MAX);
+                let len: i32 = vec.len().min(i32::MAX as usize) as i32;
                 writer.write_i32::<BE>(len)?;
                 for v in &vec[..len as usize] {
                     write_byte_vec(writer, v)?;
                 }
             }
             List::String(vec) => {
-                let len: i32 = (vec.len() as i32).min(i32::MAX);
+                let len: i32 = vec.len().min(i32::MAX as usize) as i32;
                 writer.write_i32::<BE>(len)?;
                 for s in &vec[..len as usize] {
                     write_string(writer, s)?;
                 }
             }
             List::List(vec) => {
-                let len: i32 = (vec.len() as i32).min(i32::MAX);
+                let len: i32 = vec.len().min(i32::MAX as usize) as i32;
                 writer.write_i32::<BE>(len)?;
                 for l in vec {
                     l.write(writer)?;
                 }
             }
             List::Compound(vec) => {
-                let len: i32 = (vec.len() as i32).min(i32::MAX);
+                let len: i32 = vec.len().min(i32::MAX as usize) as i32;
                 writer.write_i32::<BE>(len)?;
                 for c in &vec[..len as usize] {
                     c.write(writer)?;
                 }
             }
             List::IntArray(vec) => {
-                let len: i32 = (vec.len() as i32).min(i32::MAX);
+                let len: i32 = vec.len().min(i32::MAX as usize) as i32;
                 writer.write_i32::<BE>(len)?;
                 for v in &vec[..len as usize] {
                     write_vec(writer, v)?;
                 }
             }
             List::LongArray(vec) => {
-                let len: i32 = (vec.len() as i32).min(i32::MAX);
+                let len: i32 = vec.len().min(i32::MAX as usize) as i32;
                 writer.write_i32::<BE>(len)?;
                 for v in &vec[..len as usize] {
                     write_vec(writer, v)?;

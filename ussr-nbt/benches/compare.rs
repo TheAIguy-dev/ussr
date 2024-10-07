@@ -47,6 +47,13 @@ fn bench_file(filename: &str, c: &mut Criterion) {
             input_stream.set_position(0);
         })
     });
+    group.bench_function("ferrumc", |b| {
+        b.iter(|| {
+            let mut tape = ferrumc_nbt::NbtTape::new(&mut &input[..]);
+            tape.parse();
+            black_box(tape)
+        })
+    });
     group.bench_function("shen", |b| {
         let mut input = input.to_vec();
         b.iter(|| {
@@ -259,7 +266,7 @@ criterion_group! {
     config = Criterion::default()
                 .warm_up_time(Duration::from_secs(5))
                 // .measurement_time(Duration::from_secs(60))
-                .sample_size(100);
+                .sample_size(1_000);
     targets = bench
 }
 // criterion_group!(compare, bench);

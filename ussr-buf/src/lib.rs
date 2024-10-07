@@ -32,10 +32,10 @@ pub enum ReadError {
 }
 
 impl From<NbtReadError> for ReadError {
-    fn from(e: NbtReadError) -> Self {
+    fn from(e: NbtReadError) -> ReadError {
         match e {
-            NbtReadError::Io(e) => Self::Io(e),
-            e => Self::Nbt(e),
+            NbtReadError::Io(e) => ReadError::Io(e),
+            e => ReadError::Nbt(e),
         }
     }
 }

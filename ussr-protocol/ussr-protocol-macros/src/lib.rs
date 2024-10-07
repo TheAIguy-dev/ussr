@@ -52,7 +52,7 @@ macro_rules! packet {
             const $max_size_name: usize      = $max_size_value;
 
             fn read_from(reader: &mut impl Read) -> Result<Self, PacketReadError> {
-                Ok(Self {
+                Ok($name {
                     $(
                         $field_name: packet!(
                             @internal { $( $($value)? + )? }
