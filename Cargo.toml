@@ -2,6 +2,7 @@
 members = [
     "ussr",
     "ussr-buf",
+    "ussr-buf/ussr-buf-derive",
     "ussr-nbt",
     "ussr-net",
     "ussr-protocol",

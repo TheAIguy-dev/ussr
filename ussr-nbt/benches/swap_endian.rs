@@ -1,18 +1,11 @@
-// #![feature(portable_simd)]
-
 mod num {
-    include!("../src/num.rs");
+    pub use ussr_nbt::num::Num;
 }
-mod swap_endian {
-    include!("../src/swap_endian.rs");
-}
-include!("../src/endian.rs");
+include!("../src/swap_endian.rs");
 
 use std::time::Duration;
 
 use criterion::{black_box, criterion_group, criterion_main, BatchSize, Criterion, Throughput};
-
-use swap_endian::*;
 
 #[global_allocator]
 static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;

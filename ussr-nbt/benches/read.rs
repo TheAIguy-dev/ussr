@@ -1,5 +1,3 @@
-//! Ruthlessly stolen from simdnbt
-
 use std::{
     io::{Cursor, Read},
     time::Duration,
@@ -29,12 +27,12 @@ fn bench_read_file(filename: &str, c: &mut Criterion) {
             input_stream.set_position(0);
         })
     });
-    group.bench_function("ussr_owned", |b| {
-        b.iter(|| {
-            black_box(ussr_nbt::owned::Nbt::read(&mut input_stream).unwrap());
-            input_stream.set_position(0);
-        })
-    });
+    // group.bench_function("ussr_owned", |b| {
+    //     b.iter(|| {
+    //         black_box(ussr_nbt::owned::Nbt::read(&mut input_stream).unwrap());
+    //         input_stream.set_position(0);
+    //     })
+    // });
 }
 
 #[global_allocator]
@@ -46,7 +44,10 @@ fn bench(c: &mut Criterion) {
 
 criterion_group! {
     name = compare;
-    config = Criterion::default().warm_up_time(Duration::from_secs(5)).measurement_time(Duration::from_secs(60)).sample_size(100_000);
+    config = Criterion::default()
+                .warm_up_time(Duration::from_secs(5))
+                .measurement_time(Duration::from_secs(20))
+                .sample_size(10_000);
     targets = bench
 }
 // criterion_group!(compare, bench);

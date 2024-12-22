@@ -1,14 +1,13 @@
 #![warn(
     clippy::all,
-    clippy::nursery,
     clippy::cargo,
-    clippy::style,
-    clippy::suspicious,
     clippy::correctness,
+    clippy::nursery,
+    clippy::pedantic,
     clippy::perf,
-    clippy::pedantic
+    clippy::style,
+    clippy::suspicious
 )]
-#![allow(clippy::use_self)]
 
 mod init_tracing;
 

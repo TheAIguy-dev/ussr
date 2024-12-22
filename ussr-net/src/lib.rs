@@ -9,10 +9,17 @@ use bevy_app::prelude::*;
 use bevy_ecs::prelude::*;
 use bytes::BytesMut;
 use tracing::{instrument, trace, warn};
-use ussr_buf::VarWritable;
-use ussr_protocol::{proto::enums::State, Packet};
+use ussr_protocol::State;
 
 use process_data::process_data;
+
+// TODO: do IO stuff in tasks
+
+/// The size of the read buffer.
+const READ_BUFFER_SIZE: usize = 1024;
+
+/// The maximum size of a packet in bytes.
+const MAX_PACKET_SIZE: usize = 2097151;
 
 pub struct UssrNetPlugin;
 
@@ -24,11 +31,6 @@ impl Plugin for UssrNetPlugin {
         );
     }
 }
-
-// TODO: Do IO stuff in tasks
-
-/// The size of the read buffer.
-const READ_BUFFER_SIZE: usize = 1024;
 
 /// A resource that contains server information.
 /// The underlying [`TcpListener`] must be non-blocking, see [`TcpListener::set_nonblocking`].
@@ -114,18 +116,6 @@ fn read_data(mut commands: Commands, mut query: Query<(Entity, &mut Connection)>
             }
         }
     }
-}
-
-#[instrument(skip_all, level = "trace")]
-pub fn serialize_packet<T: Packet>(packet: T) -> Vec<u8> {
-    let mut buf: Vec<u8> = vec![];
-    T::ID.write_var_to(&mut buf).unwrap();
-    packet.write_to(&mut buf).unwrap();
-    let len: usize = buf.len();
-    len.write_var_to(&mut buf).unwrap();
-    let new_len: usize = buf.len();
-    buf.rotate_right(new_len - len);
-    buf
 }
 
 #[instrument(skip_all, level = "trace")]

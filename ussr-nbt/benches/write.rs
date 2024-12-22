@@ -1,5 +1,3 @@
-//! Ruthlessly stolen from simdnbt
-
 use std::{
     io::{Cursor, Read},
     time::Duration,
@@ -24,7 +22,7 @@ fn bench_write_file(filename: &str, c: &mut Criterion) {
 
     let nbt = ussr_nbt::borrow::Nbt::read(&mut Cursor::new(&input)).unwrap();
     let mut buf: Vec<u8> = Vec::new();
-    nbt.write(&mut buf);
+    nbt.write(&mut buf).unwrap();
     group.bench_function("ussr_borrow", |b| {
         b.iter(|| {
             buf.clear();

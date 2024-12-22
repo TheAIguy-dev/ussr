@@ -1,34 +1,26 @@
-//! This module contains the owned NBT implementation.
-//!
-//! Use this if you want to construct NBT structures yourself or if you don't own the data that you will be reading from.
-
-mod impls;
 mod util;
 
-use std::io::Read;
+use std::io::{self, Read, Write};
 
 use byteorder::{ReadBytesExt, WriteBytesExt, BE};
-use io::Write;
-use paste::paste;
 
-use crate::{endian::RawVec, mutf8::MString, NbtReadError, *};
+use crate::*;
 use util::*;
 
-/// A complete, named NBT structure.
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Nbt {
-    pub name: MString,
+    pub name: String,
     pub compound: Compound,
 }
 
 /// A collection of named NBT tags.
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Compound {
-    pub tags: Vec<(MString, Tag)>,
+    pub tags: Vec<(String, Tag)>,
 }
 
 /// A single NBT tag.
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum Tag {
     Byte(u8),
     Short(i16),
@@ -37,51 +29,52 @@ pub enum Tag {
     Float(f32),
     Double(f64),
     ByteArray(Vec<u8>),
-    String(MString),
+    String(String),
     List(List),
     Compound(Compound),
-    IntArray(RawVec<i32>),
-    LongArray(RawVec<i64>),
+    IntArray(Vec<i32>),
+    LongArray(Vec<i64>),
 }
 
 /// A list of NBT tags.
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum List {
     Empty,
     Byte(Vec<u8>),
-    Short(RawVec<i16>),
-    Int(RawVec<i32>),
-    Long(RawVec<i64>),
-    Float(RawVec<f32>),
-    Double(RawVec<f64>),
+    Short(Vec<i16>),
+    Int(Vec<i32>),
+    Long(Vec<i64>),
+    Float(Vec<f32>),
+    Double(Vec<f64>),
     ByteArray(Vec<Vec<u8>>),
-    String(Vec<MString>),
+    String(Vec<String>),
     List(Vec<List>),
     Compound(Vec<Compound>),
-    IntArray(Vec<RawVec<i32>>),
-    LongArray(Vec<RawVec<i64>>),
+    IntArray(Vec<Vec<i32>>),
+    LongArray(Vec<Vec<i64>>),
 }
 
 impl Nbt {
     /// Read a complete NBT structure from the given reader with default options.
     #[inline]
-    pub fn read(reader: &mut impl Read) -> Result<Nbt, NbtReadError> {
-        Nbt::read_with_opts(reader, ReadOpts::new())
+    pub fn read(reader: &mut impl Read) -> Result<Nbt, NbtDecodeError> {
+        Nbt::read_with_opts(reader, DecodeOpts::default())
     }
 
     /// Read a complete NBT structure from the given reader with custom options.
     #[inline]
-    pub fn read_with_opts(reader: &mut impl Read, opts: ReadOpts) -> Result<Nbt, NbtReadError> {
+    pub fn read_with_opts(reader: &mut impl Read, opts: DecodeOpts) -> Result<Nbt, NbtDecodeError> {
         let root_tag: u8 = reader.read_u8()?;
         if root_tag != TAG_COMPOUND {
-            return Err(NbtReadError::InvalidRootTag(root_tag));
+            return Err(NbtDecodeError::InvalidRootTag(root_tag));
         }
 
-        let name: MString = if opts.name {
+        let name: String = if opts.named {
             read_string(reader)?
         } else {
-            MString::new()
+            String::new()
         };
+
         let compound: Compound = Compound::read(reader, 0, opts.depth_limit)?;
 
         Ok(Nbt { name, compound })
@@ -90,14 +83,14 @@ impl Nbt {
     /// Write the NBT structure to the given writer with default options.
     #[inline]
     pub fn write(&self, writer: &mut impl Write) -> io::Result<()> {
-        self.write_with_opts(writer, WriteOpts::new())
+        self.write_with_opts(writer, EncodeOpts::default())
     }
 
     /// Write the NBT structure to the given writer with custom options.
     #[inline]
-    pub fn write_with_opts(&self, writer: &mut impl Write, opts: WriteOpts) -> io::Result<()> {
+    pub fn write_with_opts(&self, writer: &mut impl Write, opts: EncodeOpts) -> io::Result<()> {
         writer.write_u8(TAG_COMPOUND)?;
-        if opts.name {
+        if opts.named {
             write_string(writer, &self.name)?;
         }
         self.compound.write(writer)?;
@@ -113,18 +106,17 @@ impl Compound {
         reader: &mut impl Read,
         depth: u16,
         depth_limit: u16,
-    ) -> Result<Compound, NbtReadError> {
+    ) -> Result<Compound, NbtDecodeError> {
         if depth >= depth_limit {
-            return Err(NbtReadError::DepthLimitExceeded);
+            return Err(NbtDecodeError::DepthLimitExceeded);
         }
 
-        let mut tags: Vec<(MString, Tag)> = Vec::new();
+        let mut tags: Vec<(String, Tag)> = Vec::new();
 
         let mut tag_id: u8 = reader.read_u8()?;
         while tag_id != TAG_END {
-            let name: MString = read_string(reader)?;
+            let name: String = read_string(reader)?;
             let tag: Tag = Tag::read(reader, tag_id, depth + 1, depth_limit)?;
-            // println!("{:?}: {:?}", name, tag);
             tags.push((name, tag));
             tag_id = reader.read_u8()?;
         }
@@ -177,9 +169,9 @@ impl Tag {
         tag_id: u8,
         depth: u16,
         depth_limit: u16,
-    ) -> Result<Tag, NbtReadError> {
+    ) -> Result<Tag, NbtDecodeError> {
         if depth >= depth_limit {
-            return Err(NbtReadError::DepthLimitExceeded);
+            return Err(NbtDecodeError::DepthLimitExceeded);
         }
 
         Ok(match tag_id {
@@ -195,7 +187,7 @@ impl Tag {
             TAG_COMPOUND => Tag::Compound(Compound::read(reader, depth + 1, depth_limit)?),
             TAG_INT_ARRAY => Tag::IntArray(read_vec_with_len(reader)?),
             TAG_LONG_ARRAY => Tag::LongArray(read_vec_with_len(reader)?),
-            tag_id => return Err(NbtReadError::InvalidTag(tag_id)),
+            tag_id => return Err(NbtDecodeError::InvalidTag(tag_id)),
         })
     }
 
@@ -220,18 +212,18 @@ impl Tag {
         }
     }
 
-    impl_tag!(byte, +u8);
-    impl_tag!(short, +i16);
-    impl_tag!(int, +i32);
-    impl_tag!(long, +i64);
-    impl_tag!(float, +f32);
-    impl_tag!(double, +f64);
-    impl_tag!(byte_array, Vec<u8>);
-    impl_tag!(string, MString);
-    impl_tag!(list, List);
-    impl_tag!(compound, Compound);
-    impl_tag!(int_array, RawVec<i32>);
-    impl_tag!(long_array, RawVec<i64>);
+    impl_tag!(byte, u8: Copy);
+    impl_tag!(short, i16: Copy);
+    impl_tag!(int, i32: Copy);
+    impl_tag!(long, i64: Copy);
+    impl_tag!(float, f32: Copy);
+    impl_tag!(double, f64: Copy);
+    impl_tag!(byte_array, Vec<u8>: !Copy);
+    impl_tag!(string, String: !Copy);
+    impl_tag!(list, List: !Copy);
+    impl_tag!(compound, Compound: !Copy);
+    impl_tag!(int_array, Vec<i32>: !Copy);
+    impl_tag!(long_array, Vec<i64>: !Copy);
 }
 
 impl List {
@@ -266,9 +258,9 @@ impl List {
         reader: &mut impl Read,
         depth: u16,
         depth_limit: u16,
-    ) -> Result<List, NbtReadError> {
+    ) -> Result<List, NbtDecodeError> {
         if depth >= depth_limit {
-            return Err(NbtReadError::DepthLimitExceeded);
+            return Err(NbtDecodeError::DepthLimitExceeded);
         }
 
         let tag_id: u8 = reader.read_u8()?;
@@ -294,7 +286,7 @@ impl List {
                 List::ByteArray(buf)
             }
             TAG_STRING => {
-                let mut buf: Vec<MString> = Vec::with_capacity(len);
+                let mut buf: Vec<String> = Vec::with_capacity(len);
                 for _ in 0..len {
                     buf.push(read_string(reader)?);
                 }
@@ -315,20 +307,20 @@ impl List {
                 List::Compound(buf)
             }
             TAG_INT_ARRAY => {
-                let mut buf: Vec<RawVec<i32>> = Vec::with_capacity(len);
+                let mut buf: Vec<Vec<i32>> = Vec::with_capacity(len);
                 for _ in 0..len {
                     buf.push(read_vec_with_len(reader)?);
                 }
                 List::IntArray(buf)
             }
             TAG_LONG_ARRAY => {
-                let mut buf: Vec<RawVec<i64>> = Vec::with_capacity(len);
+                let mut buf: Vec<Vec<i64>> = Vec::with_capacity(len);
                 for _ in 0..len {
                     buf.push(read_vec_with_len(reader)?);
                 }
                 List::LongArray(buf)
             }
-            tag_id => return Err(NbtReadError::InvalidTag(tag_id)),
+            tag_id => return Err(NbtDecodeError::InvalidTag(tag_id)),
         })
     }
 
@@ -398,15 +390,15 @@ impl List {
         Ok(())
     }
 
-    impl_list!(byte, Vec::<u8>);
-    impl_list!(short, RawVec::<i16>);
-    impl_list!(int, RawVec::<i32>);
-    impl_list!(long, RawVec::<i64>);
-    impl_list!(float, RawVec::<f32>);
-    impl_list!(double, RawVec::<f64>);
-    impl_list!(string, Vec::<MString>);
-    impl_list!(list, Vec::<List>);
-    impl_list!(compound, Vec::<Compound>);
-    impl_list!(int_array, Vec::<RawVec<i32>>);
-    impl_list!(long_array, Vec::<RawVec<i64>>);
+    impl_list!(byte, Vec<u8>);
+    impl_list!(short, Vec<i16>);
+    impl_list!(int, Vec<i32>);
+    impl_list!(long, Vec<i64>);
+    impl_list!(float, Vec<f32>);
+    impl_list!(double, Vec<f64>);
+    impl_list!(string, Vec<String>);
+    impl_list!(list, Vec<List>);
+    impl_list!(compound, Vec<Compound>);
+    impl_list!(int_array, Vec<Vec<i32>>);
+    impl_list!(long_array, Vec<Vec<i64>>);
 }

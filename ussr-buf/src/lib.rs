@@ -1,14 +1,36 @@
-pub mod read;
-pub mod size;
-pub mod write;
+#[cfg(feature = "async")]
+pub mod async_decode;
+#[cfg(feature = "async")]
+pub mod async_encode;
+pub mod decode;
+pub mod encode;
 
-use std::io::{self, Read, Write};
+use std::io;
 
 use thiserror::Error;
-use ussr_nbt::NbtReadError;
+use ussr_nbt::NbtDecodeError;
+
+#[cfg(feature = "async")]
+pub use async_decode::{
+    decode_string as async_decode_string, Decode as AsyncDecode, DecodeExt as AsyncDecodeExt,
+    VarDecode as AsyncVarDecode,
+};
+#[cfg(feature = "async")]
+pub use async_encode::{
+    Encode as AsyncEncode, EncodeExt as AsyncEncodeExt, VarEncode as AsyncVarEncode,
+};
+pub use decode::*;
+pub use encode::*;
+#[cfg(all(feature = "derive", feature = "async"))]
+pub use ussr_buf_derive::{AsyncDecode, AsyncEncode};
+#[cfg(feature = "derive")]
+pub use ussr_buf_derive::{Decode, Encode};
+
+/// The maximum length of a string in characters.
+pub const MAX_STRING_LENGTH: usize = 32767;
 
 #[derive(Debug, Error)]
-pub enum ReadError {
+pub enum DecodeError {
     #[error(transparent)]
     Io(#[from] io::Error),
 
@@ -22,55 +44,20 @@ pub enum ReadError {
     InvalidUtf8,
 
     #[error("Invalid string length")]
-    InvalidStringLength { max: usize, actual: usize },
+    InvalidStringLength(usize),
 
     #[error("Invalid enum variant")]
     InvalidEnumVariant,
 
     #[error("Error reading NBT: {0}")]
-    Nbt(NbtReadError),
+    Nbt(NbtDecodeError),
 }
 
-impl From<NbtReadError> for ReadError {
-    fn from(e: NbtReadError) -> ReadError {
+impl From<NbtDecodeError> for DecodeError {
+    fn from(e: NbtDecodeError) -> DecodeError {
         match e {
-            NbtReadError::Io(e) => ReadError::Io(e),
-            e => ReadError::Nbt(e),
+            NbtDecodeError::Io(e) => DecodeError::Io(e),
+            e => DecodeError::Nbt(e),
         }
     }
-}
-
-/// A trait for getting the size of a type in bytes when serialized.
-///
-/// NOTE: This trait will likely be removed.
-pub trait Size {
-    const SIZE: usize;
-}
-
-/// A trait for getting the size of a variable-length type in bytes when serialized.
-///
-/// NOTE: This trait will likely be removed.
-pub trait VarSize {
-    const MIN_SIZE: usize;
-    const MAX_SIZE: usize;
-}
-
-/// A trait for reading types from a reader.
-pub trait Readable: Sized {
-    fn read_from(reader: &mut impl Read) -> Result<Self, ReadError>;
-}
-
-/// A trait for reading variable-length types from a reader.
-pub trait VarReadable: Sized {
-    fn read_var_from(buf: &mut impl Read) -> Result<Self, ReadError>;
-}
-
-/// A trait for writing types to a writer.
-pub trait Writable: Sized {
-    fn write_to(&self, writer: &mut impl Write) -> io::Result<()>;
-}
-
-/// A trait for writing variable-length types to a writer.
-pub trait VarWritable: Sized {
-    fn write_var_to(&self, writer: &mut impl Write) -> io::Result<()>;
 }

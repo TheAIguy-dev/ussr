@@ -1,5 +1,3 @@
-//! Ruthlessly stolen from simdnbt
-
 use std::{
     io::{Cursor, Read},
     time::Duration,
@@ -35,46 +33,45 @@ fn bench_file(filename: &str, c: &mut Criterion) {
             input_stream.set_position(0);
         })
     });
-    group.bench_function("simdnbt_borrow", |b| {
-        b.iter(|| {
-            black_box(simdnbt::borrow::read(&mut input_stream).unwrap());
-            input_stream.set_position(0);
-        })
-    });
-    group.bench_function("simdnbt_owned", |b| {
-        b.iter(|| {
-            black_box(simdnbt::owned::read(&mut input_stream).unwrap());
-            input_stream.set_position(0);
-        })
-    });
-    group.bench_function("ferrumc", |b| {
-        b.iter(|| {
-            let mut tape = ferrumc_nbt::NbtTape::new(&mut &input[..]);
-            tape.parse();
-            black_box(tape)
-        })
-    });
-    group.bench_function("shen", |b| {
-        let mut input = input.to_vec();
-        b.iter(|| {
-            black_box(
-                shen_nbt5::NbtValue::from_binary::<shen_nbt5::nbt_version::Java>(&mut input)
-                    .unwrap(),
-            );
-        })
-    });
-    group.bench_function("azalea", |b| {
-        b.iter(|| {
-            black_box(azalea_nbt::Nbt::read(&mut input_stream).unwrap());
-            input_stream.set_position(0);
-        })
-    });
-    group.bench_function("graphite", |b| {
-        b.iter(|| {
-            black_box(graphite_binary::nbt::decode::read(&mut &input[..]).unwrap());
-        })
-    });
-    // Removed because too slow and messing up my plot
+    // group.bench_function("simdnbt_borrow", |b| {
+    //     b.iter(|| {
+    //         black_box(simdnbt::borrow::read(&mut input_stream).unwrap());
+    //         input_stream.set_position(0);
+    //     })
+    // });
+    // group.bench_function("simdnbt_owned", |b| {
+    //     b.iter(|| {
+    //         black_box(simdnbt::owned::read(&mut input_stream).unwrap());
+    //         input_stream.set_position(0);
+    //     })
+    // });
+    // group.bench_function("ferrumc", |b| {
+    //     b.iter(|| {
+    //         let mut tape = ferrumc_nbt::NbtTape::new(&mut &input[..]);
+    //         tape.parse();
+    //         black_box(tape)
+    //     })
+    // });
+    // group.bench_function("shen", |b| {
+    //     let mut input = input.to_vec();
+    //     b.iter(|| {
+    //         black_box(
+    //             shen_nbt5::NbtValue::from_binary::<shen_nbt5::nbt_version::Java>(&mut input)
+    //                 .unwrap(),
+    //         );
+    //     })
+    // });
+    // group.bench_function("azalea", |b| {
+    //     b.iter(|| {
+    //         black_box(azalea_nbt::Nbt::read(&mut input_stream).unwrap());
+    //         input_stream.set_position(0);
+    //     })
+    // });
+    // group.bench_function("graphite", |b| {
+    //     b.iter(|| {
+    //         black_box(graphite_binary::nbt::decode::read(&mut &input[..]).unwrap());
+    //     })
+    // });
     // group.bench_function("valence", |b| {
     //     b.iter(|| {
     //         black_box(valence_nbt::from_binary::<String>(&mut &input[..]).unwrap());
@@ -125,7 +122,7 @@ fn bench_file(filename: &str, c: &mut Criterion) {
     group.bench_function("ussr_borrow", |b| {
         b.iter(|| {
             let mut out: Vec<u8> = Vec::new();
-            nbt.write(&mut out);
+            nbt.write(&mut out).unwrap();
             black_box(out);
         })
     });
@@ -139,27 +136,27 @@ fn bench_file(filename: &str, c: &mut Criterion) {
         })
     });
 
-    let nbt = simdnbt::borrow::read(&mut Cursor::new(&input))
-        .unwrap()
-        .unwrap();
-    group.bench_function("simdnbt_borrow", |b| {
-        b.iter(|| {
-            let mut out: Vec<u8> = Vec::new();
-            nbt.write(&mut out);
-            black_box(out);
-        })
-    });
+    // let nbt = simdnbt::borrow::read(&mut Cursor::new(&input))
+    //     .unwrap()
+    //     .unwrap();
+    // group.bench_function("simdnbt_borrow", |b| {
+    //     b.iter(|| {
+    //         let mut out: Vec<u8> = Vec::new();
+    //         nbt.write(&mut out);
+    //         black_box(out);
+    //     })
+    // });
 
-    let nbt = simdnbt::owned::read(&mut Cursor::new(&input))
-        .unwrap()
-        .unwrap();
-    group.bench_function("simdnbt_owned", |b| {
-        b.iter(|| {
-            let mut out: Vec<u8> = Vec::new();
-            nbt.write(&mut out);
-            black_box(out);
-        })
-    });
+    // let nbt = simdnbt::owned::read(&mut Cursor::new(&input))
+    //     .unwrap()
+    //     .unwrap();
+    // group.bench_function("simdnbt_owned", |b| {
+    //     b.iter(|| {
+    //         let mut out: Vec<u8> = Vec::new();
+    //         nbt.write(&mut out);
+    //         black_box(out);
+    //     })
+    // });
 
     let nbt = shen_nbt5::NbtValue::from_binary::<shen_nbt5::nbt_version::Java>(&mut input).unwrap();
     group.bench_function("shen", |b| {
@@ -168,14 +165,14 @@ fn bench_file(filename: &str, c: &mut Criterion) {
         })
     });
 
-    let nbt = azalea_nbt::Nbt::read(&mut Cursor::new(&input)).unwrap();
-    group.bench_function("azalea", |b| {
-        b.iter(|| {
-            let mut out: Vec<u8> = Vec::new();
-            nbt.write(&mut out);
-            black_box(out);
-        })
-    });
+    // let nbt = azalea_nbt::Nbt::read(&mut Cursor::new(&input)).unwrap();
+    // group.bench_function("azalea", |b| {
+    //     b.iter(|| {
+    //         let mut out: Vec<u8> = Vec::new();
+    //         nbt.write(&mut out);
+    //         black_box(out);
+    //     })
+    // });
 
     let nbt = graphite_binary::nbt::decode::read(&mut &input[..]).unwrap();
     group.bench_function("graphite", |b| {
@@ -266,7 +263,7 @@ criterion_group! {
     config = Criterion::default()
                 .warm_up_time(Duration::from_secs(5))
                 // .measurement_time(Duration::from_secs(60))
-                .sample_size(1_000);
+                .sample_size(10_000);
     targets = bench
 }
 // criterion_group!(compare, bench);

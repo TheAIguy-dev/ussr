@@ -1,8 +1,22 @@
 #![doc = include_str!("../README.md")]
+#![warn(
+    clippy::all,
+    clippy::cargo,
+    clippy::correctness,
+    clippy::nursery,
+    clippy::pedantic,
+    clippy::perf,
+    clippy::style,
+    clippy::suspicious
+)]
+#![allow(
+    clippy::use_self,
+    clippy::cast_possible_truncation,
+    clippy::cast_sign_loss,
+    clippy::cast_possible_wrap
+)]
 
 pub mod borrow;
-pub mod endian;
-pub mod mutf8;
 pub mod num;
 pub mod owned;
 mod swap_endian;
@@ -10,6 +24,12 @@ mod swap_endian;
 use std::io;
 
 use thiserror::Error;
+
+// TODO: make borrow actually usable :/
+// TODO: could do a ToReader trait and use a single reader type, since all of them must be contiguous anyway
+// TODO: macros to generate Decode and Encode for nbt types
+// TODO: const nbt (for fun)
+//? remove arrays? they are equivalent to lists and are just a hassle
 
 pub const TAG_END: u8 = 0;
 pub const TAG_BYTE: u8 = 1;
@@ -25,10 +45,10 @@ pub const TAG_COMPOUND: u8 = 10;
 pub const TAG_INT_ARRAY: u8 = 11;
 pub const TAG_LONG_ARRAY: u8 = 12;
 
-/// Errors that can occur while reading NBT data.
+/// Errors that can occur while decoding NBT data.
 #[non_exhaustive]
 #[derive(Debug, Error)]
-pub enum NbtReadError {
+pub enum NbtDecodeError {
     #[error(transparent)]
     Io(#[from] io::Error),
 
@@ -40,73 +60,95 @@ pub enum NbtReadError {
 
     #[error("Depth limit exceeded")]
     DepthLimitExceeded,
+
+    #[error("Invalid MUTF-8")]
+    InvalidMutf8,
 }
 
-/// Options for reading NBT data.
-//? Automatically handle endianess?
-//? Check for duplicate keys?
-pub struct ReadOpts {
-    /// The maximum depth to read.
+/// Options for decoding NBT data.
+#[derive(Clone, Copy)]
+pub struct DecodeOpts {
+    /// The maximum depth to decode.
     /// Defaults to `128`.
     pub depth_limit: u16,
 
-    /// Whether to read the root compound name or not.
+    /// Whether the root compound has name or not.
     /// Defaults to `true`.
-    pub name: bool,
+    pub named: bool,
 }
 
-/// Options for writing NBT data.
-pub struct WriteOpts {
-    /// Whether to write the root compound name or not.
-    /// Defaults to `true`.
-    pub name: bool,
-}
-
-impl Default for ReadOpts {
+impl Default for DecodeOpts {
     #[inline]
     fn default() -> Self {
-        Self {
-            depth_limit: 128,
-            name: true,
-        }
+        DecodeOpts::new(128, true)
     }
 }
 
-impl ReadOpts {
+impl DecodeOpts {
+    #[must_use]
     #[inline]
-    pub fn new() -> Self {
-        Self::default()
+    pub const fn new(depth_limit: u16, named: bool) -> DecodeOpts {
+        DecodeOpts { depth_limit, named }
     }
 
+    /// A shorthand for nameless NBT with other options defaulted.
+    #[must_use]
     #[inline]
-    pub fn with_depth_limit(mut self, depth_limit: u16) -> Self {
+    pub const fn nameless() -> DecodeOpts {
+        DecodeOpts {
+            named: false,
+            depth_limit: 128,
+        }
+    }
+
+    #[must_use]
+    #[inline]
+    pub const fn with_depth_limit(mut self, depth_limit: u16) -> DecodeOpts {
         self.depth_limit = depth_limit;
         self
     }
 
+    #[must_use]
     #[inline]
-    pub fn with_name(mut self, name: bool) -> Self {
-        self.name = name;
+    pub const fn with_name(mut self, named: bool) -> DecodeOpts {
+        self.named = named;
         self
     }
 }
 
-impl Default for WriteOpts {
+/// Options for encoding NBT data.
+#[derive(Clone, Copy)]
+pub struct EncodeOpts {
+    /// Whether to encode the root compound name or not.
+    /// Defaults to `true`.
+    pub named: bool,
+}
+
+impl Default for EncodeOpts {
     #[inline]
     fn default() -> Self {
-        Self { name: true }
+        EncodeOpts::new(true)
     }
 }
 
-impl WriteOpts {
+impl EncodeOpts {
+    #[must_use]
     #[inline]
-    pub fn new() -> Self {
-        Self::default()
+    pub const fn new(named: bool) -> EncodeOpts {
+        EncodeOpts { named }
     }
 
+    /// A shorthand for nameless NBT with other options defaulted.
+    #[must_use]
     #[inline]
-    pub fn with_name(mut self, name: bool) -> Self {
-        self.name = name;
+    pub const fn nameless() -> EncodeOpts {
+        EncodeOpts { named: false }
+    }
+
+    #[must_use]
+    #[inline]
+    pub const fn with_name(mut self, named: bool) -> EncodeOpts {
+        self.named = named;
         self
     }
 }

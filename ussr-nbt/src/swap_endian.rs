@@ -7,7 +7,7 @@ macro_rules! swap_endian_impl {
                 #[target_feature(enable = $feature)]
                 unsafe fn [<swap_endian_ $name>]<T: Num>(s: &mut [T]) {
                     for i in s.iter_mut() {
-                        *i = i.swap_bytes();
+                        *i = i.to_be();
                     }
                 }
             )*
@@ -41,7 +41,7 @@ swap_endian_impl! {
 
 fn swap_endian_fallback<T: Num>(slice: &mut [T]) {
     for i in slice.iter_mut() {
-        *i = i.swap_bytes();
+        *i = i.to_be();
     }
 }
 

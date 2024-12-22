@@ -4,10 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-bevy_app = { version = "0.14.2", default-features = false }
-chrono = "0.4.38"
+bevy_app = { version = "0.15.0", default-features = false }
+chrono = "0.4.39"
 nu-ansi-term = "0.50.1"
-tracing = "0.1.40"
-tracing-core = "0.1.32"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing = "0.1.41"
+tracing-core = "0.1.33"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
 ussr-net = { version = "0.1.0", path = "../ussr-net" }
